@@ -8,7 +8,8 @@
     "build": "vite build",
     "demo": "node demo.js",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
