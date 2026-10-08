@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import FilterButtons from './components/FilterButtons.jsx'
 import PriorityFilter from './components/PriorityFilter.jsx'
 import SearchInput from './components/SearchInput.jsx'
@@ -18,15 +18,26 @@ import {
   updateTask,
 } from './tasks.js'
 
-const startingTasks = [
-  { id: 't1', title: 'Learn React basics', completed: false, priority: 'high' },
-  { id: 't2', title: 'Practise JavaScript arrays', completed: true, priority: 'medium' },
-  { id: 't3', title: 'Improve mobile layout', completed: false, priority: 'low' },
-  { id: 't4', title: 'Learn React basics', completed: true, priority: 'low' },
-]
+const STORAGE_KEY = 'task-tracker-tasks'
+
+function loadTasks() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+
+    if (saved === null) {
+      return []
+    }
+
+    const parsed = JSON.parse(saved)
+
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
 
 function App() {
-  const [tasks, setTasks] = useState(startingTasks)
+  const [tasks, setTasks] = useState(loadTasks)
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('medium')
   const [filter, setFilter] = useState('all')
@@ -38,6 +49,14 @@ function App() {
   const [draftTitle, setDraftTitle] = useState('')
   const [draftPriority, setDraftPriority] = useState('medium')
   const [editError, setEditError] = useState('')
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
+    } catch {
+      // Storage unavailable (private mode) - the app keeps working in memory
+    }
+  }, [tasks])
 
   const counts = getCounts(tasks)
   const isEditing = editingId !== null
