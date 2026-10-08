@@ -11,6 +11,7 @@ function FilterButtons({ filter, onFilterChange }) {
         <button
           key={option.value}
           type="button"
+          aria-pressed={filter === option.value}
           onClick={() => onFilterChange(option.value)}
           className={`rounded border px-3 py-1 text-sm font-medium ${
             filter === option.value

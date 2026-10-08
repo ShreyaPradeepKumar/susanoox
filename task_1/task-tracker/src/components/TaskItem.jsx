@@ -10,7 +10,7 @@ function TaskItem({ task, onToggle, onDelete }) {
       />
       <label
         htmlFor={`task-${task.id}`}
-        className={`flex-1 break-words ${task.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}
+        className={`min-w-0 flex-1 break-words ${task.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}
       >
         {task.title}
       </label>

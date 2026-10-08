@@ -43,9 +43,11 @@ separate from React so they can be tested and reused on their own:
 | `filterTasks(tasks, status)` | Returns tasks matching `'all'`, `'pending'` or `'completed'` |
 | `getCounts(tasks)` | Returns `{ total, pending, completed }` |
 
-Every function takes the task list and returns a **new** list rather than
-editing the original. React relies on this: it re-renders when it receives a
-new array, and ignores the change if it gets the same one back.
+None of these functions edit the list you pass in. A valid change returns a
+**new** array; a rejected change (a blank title) returns the **original array
+unchanged**, so a caller can tell the two apart by comparing references. React
+relies on this: it re-renders when it receives a new array, and ignores the
+change when it gets the same one back.
 
 ## Trying the functions on their own
 
@@ -83,5 +85,7 @@ task-tracker/
 
 ## Known limitation
 
-Tasks are held in React state, which lives only in memory, so refreshing the
-page clears the list. Saving to the browser is a later step.
+Tasks are held in React state, which lives only in memory. Refreshing the page
+discards your changes and restores the starting sample tasks — anything you
+added, completed or deleted is not remembered. Saving to the browser is a later
+step.

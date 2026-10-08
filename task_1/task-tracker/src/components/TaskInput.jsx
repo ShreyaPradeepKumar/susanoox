@@ -11,7 +11,9 @@ function TaskInput({ title, error, onTitleChange, onSubmit }) {
           placeholder="Add a new task"
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
-          className="flex-1 rounded border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none"
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? 'task-title-error' : undefined}
+          className="min-w-0 flex-1 rounded border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none"
         />
         <button
           type="submit"
@@ -20,7 +22,11 @@ function TaskInput({ title, error, onTitleChange, onSubmit }) {
           Add
         </button>
       </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p id="task-title-error" className="mt-2 text-sm text-red-600">
+          {error}
+        </p>
+      )}
     </form>
   )
 }
