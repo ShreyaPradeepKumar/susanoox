@@ -6,7 +6,10 @@ const options = [
 
 function FilterButtons({ filter, onFilterChange, disabled }) {
   return (
-    <div role="group" aria-label="Status" className="mb-4 flex flex-wrap gap-2">
+    <div role="group" aria-labelledby="status-filter-label" className="mb-4 flex flex-wrap items-center gap-2">
+      <span id="status-filter-label" className="text-sm font-medium text-slate-700">
+        Status:
+      </span>
       {options.map((option) => (
         <button
           key={option.value}

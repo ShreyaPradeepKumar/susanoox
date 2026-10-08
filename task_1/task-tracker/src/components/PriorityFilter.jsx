@@ -7,7 +7,10 @@ const options = [
 
 function PriorityFilter({ priority, onPriorityChange, disabled }) {
   return (
-    <div role="group" aria-label="Priority" className="mb-4 flex flex-wrap gap-2">
+    <div role="group" aria-labelledby="priority-filter-label" className="mb-4 flex flex-wrap items-center gap-2">
+      <span id="priority-filter-label" className="text-sm font-medium text-slate-700">
+        Priority:
+      </span>
       {options.map((option) => (
         <button
           key={option.value}
