@@ -23,6 +23,27 @@ export function addTask(tasks, title, priority = 'medium') {
   return [...tasks, newTask]
 }
 
+export function updateTask(tasks, id, title, priority = 'medium') {
+  const cleanTitle = title.trim()
+
+  if (cleanTitle === '') {
+    return tasks
+  }
+
+  const validPriority = PRIORITY_ORDER[priority] ? priority : 'medium'
+
+  if (!tasks.some((task) => task.id === id)) {
+    return tasks
+  }
+
+  return tasks.map((task) => {
+    if (task.id === id) {
+      return { ...task, title: cleanTitle, priority: validPriority }
+    }
+    return task
+  })
+}
+
 export function deleteTask(tasks, id) {
   return tasks.filter((task) => task.id !== id)
 }

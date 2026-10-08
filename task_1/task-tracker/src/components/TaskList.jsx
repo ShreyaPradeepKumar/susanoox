@@ -6,7 +6,22 @@ const emptyMessages = {
   completed: 'No completed tasks yet.',
 }
 
-function TaskList({ tasks, filter, onToggle, onDelete }) {
+function TaskList({
+  tasks,
+  filter,
+  editingId,
+  disabled,
+  onToggle,
+  onDelete,
+  onEdit,
+  draftTitle,
+  draftPriority,
+  editError,
+  onDraftTitleChange,
+  onDraftPriorityChange,
+  onSave,
+  onCancel,
+}) {
   if (tasks.length === 0) {
     return (
       <p className="mb-4 rounded border border-slate-200 px-3 py-6 text-center text-sm text-slate-500">
@@ -21,8 +36,18 @@ function TaskList({ tasks, filter, onToggle, onDelete }) {
         <TaskItem
           key={task.id}
           task={task}
+          editing={editingId === task.id}
+          disabled={disabled}
           onToggle={onToggle}
           onDelete={onDelete}
+          onEdit={onEdit}
+          draftTitle={draftTitle}
+          draftPriority={draftPriority}
+          editError={editError}
+          onDraftTitleChange={onDraftTitleChange}
+          onDraftPriorityChange={onDraftPriorityChange}
+          onSave={onSave}
+          onCancel={onCancel}
         />
       ))}
     </ul>

@@ -4,7 +4,7 @@ import SortSelect from './components/SortSelect.jsx'
 import TaskInput from './components/TaskInput.jsx'
 import TaskList from './components/TaskList.jsx'
 import TaskSummary from './components/TaskSummary.jsx'
-import { addTask, deleteTask, filterTasks, getCounts, sortTasks, toggleTask } from './tasks.js'
+import { addTask, deleteTask, filterTasks, getCounts, sortTasks, toggleTask, updateTask } from './tasks.js'
 
 const startingTasks = [
   { id: 't1', title: 'Learn React basics', completed: false, priority: 'high' },
@@ -20,6 +20,10 @@ function App() {
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('original')
   const [error, setError] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [draftTitle, setDraftTitle] = useState('')
+  const [draftPriority, setDraftPriority] = useState('medium')
+  const [editError, setEditError] = useState('')
 
   const counts = getCounts(tasks)
   const visibleTasks = sortTasks(filterTasks(tasks, filter), sort)
@@ -45,6 +49,35 @@ function App() {
     setTasks(deleteTask(tasks, id))
   }
 
+  function handleEdit(task) {
+    setEditingId(task.id)
+    setDraftTitle(task.title)
+    setDraftPriority(task.priority)
+    setEditError('')
+  }
+
+  function handleSave(event) {
+    event.preventDefault()
+
+    if (draftTitle.trim() === '') {
+      setEditError('Please enter a task title.')
+      return
+    }
+
+    setTasks(updateTask(tasks, editingId, draftTitle, draftPriority))
+    setEditingId(null)
+    setDraftTitle('')
+    setDraftPriority('medium')
+    setEditError('')
+  }
+
+  function handleCancel() {
+    setEditingId(null)
+    setDraftTitle('')
+    setDraftPriority('medium')
+    setEditError('')
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 p-4">
       <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-5">
@@ -63,8 +96,18 @@ function App() {
         <TaskList
           tasks={visibleTasks}
           filter={filter}
+          editingId={editingId}
+          disabled={editingId !== null}
           onToggle={handleToggle}
           onDelete={handleDelete}
+          onEdit={handleEdit}
+          draftTitle={draftTitle}
+          draftPriority={draftPriority}
+          editError={editError}
+          onDraftTitleChange={setDraftTitle}
+          onDraftPriorityChange={setDraftPriority}
+          onSave={handleSave}
+          onCancel={handleCancel}
         />
         <TaskSummary
           total={counts.total}

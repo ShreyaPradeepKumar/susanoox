@@ -1,3 +1,5 @@
+import TaskEditor from './TaskEditor.jsx'
+
 const priorityStyles = {
   high: 'bg-red-100 text-red-700',
   medium: 'bg-amber-100 text-amber-700',
@@ -10,7 +12,37 @@ const priorityLabels = {
   low: 'Low',
 }
 
-function TaskItem({ task, onToggle, onDelete }) {
+function TaskItem({
+  task,
+  editing,
+  disabled,
+  onToggle,
+  onDelete,
+  onEdit,
+  draftTitle,
+  draftPriority,
+  editError,
+  onDraftTitleChange,
+  onDraftPriorityChange,
+  onSave,
+  onCancel,
+}) {
+  if (editing) {
+    return (
+      <li className="rounded border border-slate-200 px-3 py-2">
+        <TaskEditor
+          draftTitle={draftTitle}
+          draftPriority={draftPriority}
+          editError={editError}
+          onDraftTitleChange={onDraftTitleChange}
+          onDraftPriorityChange={onDraftPriorityChange}
+          onSave={onSave}
+          onCancel={onCancel}
+        />
+      </li>
+    )
+  }
+
   return (
     <li className="flex items-center gap-3 rounded border border-slate-200 px-3 py-2">
       <input
@@ -18,7 +50,8 @@ function TaskItem({ task, onToggle, onDelete }) {
         type="checkbox"
         checked={task.completed}
         onChange={() => onToggle(task.id)}
-        className="size-4 shrink-0"
+        disabled={disabled}
+        className="size-4 shrink-0 disabled:opacity-50"
       />
       <label
         htmlFor={`task-${task.id}`}
@@ -33,8 +66,17 @@ function TaskItem({ task, onToggle, onDelete }) {
       </span>
       <button
         type="button"
+        onClick={() => onEdit(task)}
+        disabled={disabled}
+        className="shrink-0 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
+      >
+        Edit
+      </button>
+      <button
+        type="button"
         onClick={() => onDelete(task.id)}
-        className="shrink-0 text-sm font-medium text-red-600 hover:text-red-800"
+        disabled={disabled}
+        className="shrink-0 text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
       >
         Delete
       </button>
