@@ -109,7 +109,14 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-100 p-4">
       <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-5">
-        <h1 className="mb-5 text-2xl font-bold text-slate-800">Task Tracker</h1>
+        <div className="mb-5 flex items-center gap-3">
+          <h1 className="shrink-0 text-2xl font-bold text-slate-800">Task Tracker</h1>
+          <SearchInput
+            search={search}
+            onSearchChange={setSearch}
+            disabled={isEditing}
+          />
+        </div>
 
         <TaskInput
           title={title}
@@ -118,11 +125,6 @@ function App() {
           onTitleChange={setTitle}
           onPriorityChange={setPriority}
           onSubmit={handleAdd}
-        />
-        <SearchInput
-          search={search}
-          onSearchChange={setSearch}
-          disabled={isEditing}
         />
         <FilterButtons
           filter={filter}
