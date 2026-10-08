@@ -1,10 +1,22 @@
 import { useState } from 'react'
 import FilterButtons from './components/FilterButtons.jsx'
+import PriorityFilter from './components/PriorityFilter.jsx'
+import SearchInput from './components/SearchInput.jsx'
 import SortSelect from './components/SortSelect.jsx'
 import TaskInput from './components/TaskInput.jsx'
 import TaskList from './components/TaskList.jsx'
 import TaskSummary from './components/TaskSummary.jsx'
-import { addTask, deleteTask, filterTasks, getCounts, sortTasks, toggleTask, updateTask } from './tasks.js'
+import {
+  addTask,
+  deleteTask,
+  filterByPriority,
+  filterTasks,
+  getCounts,
+  searchTasks,
+  sortTasks,
+  toggleTask,
+  updateTask,
+} from './tasks.js'
 
 const startingTasks = [
   { id: 't1', title: 'Learn React basics', completed: false, priority: 'high' },
@@ -18,6 +30,8 @@ function App() {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('medium')
   const [filter, setFilter] = useState('all')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [search, setSearch] = useState('')
   const [sort, setSort] = useState('original')
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -26,7 +40,15 @@ function App() {
   const [editError, setEditError] = useState('')
 
   const counts = getCounts(tasks)
-  const visibleTasks = sortTasks(filterTasks(tasks, filter), sort)
+  const isEditing = editingId !== null
+  const anyTasks = tasks.length > 0
+  const isFiltered =
+    filter !== 'all' || priorityFilter !== 'all' || search.trim() !== ''
+
+  const statusFiltered = filterTasks(tasks, filter)
+  const priorityFiltered = filterByPriority(statusFiltered, priorityFilter)
+  const searched = searchTasks(priorityFiltered, search)
+  const visibleTasks = sortTasks(searched, sort)
 
   function handleAdd(event) {
     event.preventDefault()
@@ -47,6 +69,12 @@ function App() {
 
   function handleDelete(id) {
     setTasks(deleteTask(tasks, id))
+  }
+
+  function handleClearFilters() {
+    setFilter('all')
+    setPriorityFilter('all')
+    setSearch('')
   }
 
   function handleEdit(task) {
@@ -91,13 +119,45 @@ function App() {
           onPriorityChange={setPriority}
           onSubmit={handleAdd}
         />
-        <FilterButtons filter={filter} onFilterChange={setFilter} />
-        <SortSelect sort={sort} onSortChange={setSort} />
+        <SearchInput
+          search={search}
+          onSearchChange={setSearch}
+          disabled={isEditing}
+        />
+        <FilterButtons
+          filter={filter}
+          onFilterChange={setFilter}
+          disabled={isEditing}
+        />
+        <PriorityFilter
+          priority={priorityFilter}
+          onPriorityChange={setPriorityFilter}
+          disabled={isEditing}
+        />
+        <SortSelect
+          sort={sort}
+          onSortChange={setSort}
+          disabled={isEditing}
+        />
+        {isFiltered && (
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="mb-4 rounded border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            Clear search and filters
+          </button>
+        )}
+        {isEditing && (
+          <p className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+            Save or Cancel before using search and filters.
+          </p>
+        )}
         <TaskList
           tasks={visibleTasks}
-          filter={filter}
+          anyTasks={anyTasks}
           editingId={editingId}
-          disabled={editingId !== null}
+          disabled={isEditing}
           onToggle={handleToggle}
           onDelete={handleDelete}
           onEdit={handleEdit}
@@ -113,6 +173,7 @@ function App() {
           total={counts.total}
           pending={counts.pending}
           completed={counts.completed}
+          showing={visibleTasks.length}
         />
       </div>
     </div>

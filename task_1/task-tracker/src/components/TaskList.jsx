@@ -1,14 +1,8 @@
 import TaskItem from './TaskItem.jsx'
 
-const emptyMessages = {
-  all: 'No tasks yet. Add your first one above.',
-  pending: 'No pending tasks. Everything is done!',
-  completed: 'No completed tasks yet.',
-}
-
 function TaskList({
   tasks,
-  filter,
+  anyTasks,
   editingId,
   disabled,
   onToggle,
@@ -23,9 +17,13 @@ function TaskList({
   onCancel,
 }) {
   if (tasks.length === 0) {
+    const message = anyTasks
+      ? 'No tasks match your search and filters.'
+      : 'No tasks yet. Add your first one above.'
+
     return (
       <p className="mb-4 rounded border border-slate-200 px-3 py-6 text-center text-sm text-slate-500">
-        {emptyMessages[filter]}
+        {message}
       </p>
     )
   }

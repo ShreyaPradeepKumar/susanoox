@@ -69,6 +69,24 @@ export function filterTasks(tasks, status) {
   return tasks
 }
 
+export function searchTasks(tasks, query) {
+  const cleanQuery = query.trim().toLowerCase()
+
+  if (cleanQuery === '') {
+    return tasks
+  }
+
+  return tasks.filter((task) => task.title.toLowerCase().includes(cleanQuery))
+}
+
+export function filterByPriority(tasks, priority) {
+  if (priority === 'all') {
+    return tasks
+  }
+
+  return tasks.filter((task) => task.priority === priority)
+}
+
 export function getCounts(tasks) {
   return {
     total: tasks.length,

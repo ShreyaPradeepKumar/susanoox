@@ -1,21 +1,22 @@
 const options = [
   { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'completed', label: 'Completed' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
 ]
 
-function FilterButtons({ filter, onFilterChange, disabled }) {
+function PriorityFilter({ priority, onPriorityChange, disabled }) {
   return (
-    <div role="group" aria-label="Status" className="mb-4 flex flex-wrap gap-2">
+    <div role="group" aria-label="Priority" className="mb-4 flex flex-wrap gap-2">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
-          aria-pressed={filter === option.value}
-          onClick={() => onFilterChange(option.value)}
+          aria-pressed={priority === option.value}
+          onClick={() => onPriorityChange(option.value)}
           disabled={disabled}
           className={`rounded border px-3 py-1 text-sm font-medium disabled:opacity-50 ${
-            filter === option.value
+            priority === option.value
               ? 'border-blue-600 bg-blue-600 text-white'
               : 'border-slate-300 text-slate-700 hover:bg-slate-100'
           }`}
@@ -27,4 +28,4 @@ function FilterButtons({ filter, onFilterChange, disabled }) {
   )
 }
 
-export default FilterButtons
+export default PriorityFilter
