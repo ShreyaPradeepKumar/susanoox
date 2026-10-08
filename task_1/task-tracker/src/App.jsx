@@ -1,24 +1,28 @@
 import { useState } from 'react'
 import FilterButtons from './components/FilterButtons.jsx'
+import SortSelect from './components/SortSelect.jsx'
 import TaskInput from './components/TaskInput.jsx'
 import TaskList from './components/TaskList.jsx'
 import TaskSummary from './components/TaskSummary.jsx'
-import { addTask, deleteTask, filterTasks, getCounts, toggleTask } from './tasks.js'
+import { addTask, deleteTask, filterTasks, getCounts, sortTasks, toggleTask } from './tasks.js'
 
 const startingTasks = [
-  { id: 'a1', title: 'Practise JavaScript arrays', completed: false },
-  { id: 'a2', title: 'Build the task tracker UI', completed: true },
-  { id: 'a3', title: 'Practise JavaScript arrays', completed: false },
+  { id: 't1', title: 'Learn React basics', completed: false, priority: 'high' },
+  { id: 't2', title: 'Practise JavaScript arrays', completed: true, priority: 'medium' },
+  { id: 't3', title: 'Improve mobile layout', completed: false, priority: 'low' },
+  { id: 't4', title: 'Learn React basics', completed: true, priority: 'low' },
 ]
 
 function App() {
   const [tasks, setTasks] = useState(startingTasks)
   const [title, setTitle] = useState('')
+  const [priority, setPriority] = useState('medium')
   const [filter, setFilter] = useState('all')
+  const [sort, setSort] = useState('original')
   const [error, setError] = useState('')
 
   const counts = getCounts(tasks)
-  const visibleTasks = filterTasks(tasks, filter)
+  const visibleTasks = sortTasks(filterTasks(tasks, filter), sort)
 
   function handleAdd(event) {
     event.preventDefault()
@@ -28,7 +32,7 @@ function App() {
       return
     }
 
-    setTasks(addTask(tasks, title))
+    setTasks(addTask(tasks, title, priority))
     setTitle('')
     setError('')
   }
@@ -49,10 +53,13 @@ function App() {
         <TaskInput
           title={title}
           error={error}
+          priority={priority}
           onTitleChange={setTitle}
+          onPriorityChange={setPriority}
           onSubmit={handleAdd}
         />
         <FilterButtons filter={filter} onFilterChange={setFilter} />
+        <SortSelect sort={sort} onSortChange={setSort} />
         <TaskList
           tasks={visibleTasks}
           filter={filter}

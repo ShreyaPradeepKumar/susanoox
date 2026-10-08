@@ -1,4 +1,4 @@
-function TaskInput({ title, error, onTitleChange, onSubmit }) {
+function TaskInput({ title, error, priority, onTitleChange, onPriorityChange, onSubmit }) {
   return (
     <form className="mb-4" onSubmit={onSubmit}>
       <label htmlFor="task-title" className="sr-only">
@@ -27,6 +27,21 @@ function TaskInput({ title, error, onTitleChange, onSubmit }) {
           {error}
         </p>
       )}
+      <div className="mt-2 flex items-center gap-2">
+        <label htmlFor="task-priority" className="text-sm font-medium text-slate-700">
+          Priority
+        </label>
+        <select
+          id="task-priority"
+          value={priority}
+          onChange={(event) => onPriorityChange(event.target.value)}
+          className="flex-1 rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-700"
+        >
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
     </form>
   )
 }

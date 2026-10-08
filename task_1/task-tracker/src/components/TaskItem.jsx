@@ -1,3 +1,15 @@
+const priorityStyles = {
+  high: 'bg-red-100 text-red-700',
+  medium: 'bg-amber-100 text-amber-700',
+  low: 'bg-green-100 text-green-700',
+}
+
+const priorityLabels = {
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
+}
+
 function TaskItem({ task, onToggle, onDelete }) {
   return (
     <li className="flex items-center gap-3 rounded border border-slate-200 px-3 py-2">
@@ -14,6 +26,11 @@ function TaskItem({ task, onToggle, onDelete }) {
       >
         {task.title}
       </label>
+      <span
+        className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${priorityStyles[task.priority]}`}
+      >
+        {priorityLabels[task.priority]}
+      </span>
       <button
         type="button"
         onClick={() => onDelete(task.id)}
