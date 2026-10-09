@@ -85,6 +85,20 @@ The deployed app at the link above matches the latest build from this commit.
 - Early on I tried making the app remember tasks after a refresh using browser storage. I later removed it because the assignment says storage is out of scope, and the Task 01 corrections expect refresh to bring back the sample data. Worth flagging that I un-built a feature on purpose.
 - No other blockers. The hardest part was focus returning to the right place after editing, and I solved it by sending focus back to the row's Edit button, with a fallback to the search box if that row has disappeared from the current view.
 
+## Challenges I faced
+
+The lesson from Task 01 carried over - I understand things slowly, and only by repeating them did they stick. These are the ones that hit hardest in Task 02.
+
+1. **Sorting without ruining my data.** I knew from Task 01 not to touch the list I'm given, but `.sort()` doesn't wait for that rule - it changes the array in place, and I kept accidentally reordering the original list. I had to repeat the lesson until copying-then-sorting (`[...tasks]`) became a habit. A test that checks the original list after sorting finally locked it in.
+
+2. **Why I need a draft while editing.** At first I didn't understand why typing in the edit box wouldn't just change the task immediately. It took a while before it clicked that changing the saved task on every keystroke would mean every Cancel needs an undo. Keeping the draft separate is exactly what makes Cancel free.
+
+3. **The order of search, filters and sort.** Understanding - and remembering - the order I apply them in (status, then priority, then search, then sort) took repeating. I kept wondering why a task didn't appear, then realising it just hadn't passed every step of the pipeline. Filters combine one after another; the counts never change.
+
+4. **Counts versus what's on screen.** This confused me again in Task 02. The list can show 0 tasks while the counts say 4 / 2 / 2. I had to reinforce again that the counts always describe every saved task, and the "Showing X of Y" line is the only number about the visible list.
+
+5. **Learning to un-build.** I spent time making the app remember my tasks after a refresh (browser storage), then had to take it all out because the assignment says storage is out of scope. Reinforcing what "out of scope" means was as hard as building the feature - it felt like throwing away working code, even though it was the right call.
+
 ## What I used OpenCode for
 
 I used OpenCode as my coding assistant again, mostly to help with the new functions in `tasks.js`, the search/filter pipeline, and the keyboard and focus behaviour for the editor. As before, I didn't take its suggestions as-is. I ran the tests, read the code, clicked through the app, and asked it to re-explain anything I didn't understand before keeping the change.
