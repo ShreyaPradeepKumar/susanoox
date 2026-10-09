@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import FilterButtons from './components/FilterButtons.jsx'
 import PriorityFilter from './components/PriorityFilter.jsx'
 import SearchInput from './components/SearchInput.jsx'
@@ -38,6 +38,7 @@ function App() {
   const [draftTitle, setDraftTitle] = useState('')
   const [draftPriority, setDraftPriority] = useState('medium')
   const [editError, setEditError] = useState('')
+  const closedEditId = useRef(null)
 
   const counts = getCounts(tasks)
   const isEditing = editingId !== null
@@ -49,6 +50,20 @@ function App() {
   const priorityFiltered = filterByPriority(statusFiltered, priorityFilter)
   const searched = searchTasks(priorityFiltered, search)
   const visibleTasks = sortTasks(searched, sort)
+
+  useEffect(() => {
+    if (editingId === null && closedEditId.current) {
+      const stillVisible = visibleTasks.some(
+        (task) => task.id === closedEditId.current
+      )
+
+      if (!stillVisible) {
+        document.getElementById('task-search')?.focus()
+      }
+
+      closedEditId.current = null
+    }
+  }, [editingId, visibleTasks])
 
   function handleAdd(event) {
     event.preventDefault()
@@ -92,6 +107,7 @@ function App() {
       return
     }
 
+    closedEditId.current = editingId
     setTasks(updateTask(tasks, editingId, draftTitle, draftPriority))
     setEditingId(null)
     setDraftTitle('')
@@ -100,6 +116,7 @@ function App() {
   }
 
   function handleCancel() {
+    closedEditId.current = editingId
     setEditingId(null)
     setDraftTitle('')
     setDraftPriority('medium')
@@ -152,7 +169,7 @@ function App() {
         )}
         {isEditing && (
           <p className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
-            Save or Cancel before using search and filters.
+            Save or cancel your edit to change the list view.
           </p>
         )}
         <TaskList

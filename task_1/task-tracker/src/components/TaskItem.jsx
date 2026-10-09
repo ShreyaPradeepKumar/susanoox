@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import TaskEditor from './TaskEditor.jsx'
 
 const priorityStyles = {
@@ -27,6 +28,17 @@ function TaskItem({
   onSave,
   onCancel,
 }) {
+  const editButtonRef = useRef(null)
+  const wasEditing = useRef(false)
+
+  useEffect(() => {
+    if (wasEditing.current && !editing) {
+      editButtonRef.current?.focus()
+    }
+
+    wasEditing.current = editing
+  }, [editing])
+
   if (editing) {
     return (
       <li className="rounded border border-slate-200 px-3 py-2">
@@ -66,6 +78,7 @@ function TaskItem({
       </span>
       <button
         type="button"
+        ref={editButtonRef}
         onClick={() => onEdit(task)}
         disabled={disabled}
         className="shrink-0 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"

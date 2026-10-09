@@ -11,13 +11,15 @@ export function addTask(tasks, title, priority = 'medium') {
     return tasks
   }
 
-  const validPriority = PRIORITY_ORDER[priority] ? priority : 'medium'
+  if (!PRIORITY_ORDER[priority]) {
+    return tasks
+  }
 
   const newTask = {
     id: crypto.randomUUID(),
     title: cleanTitle,
     completed: false,
-    priority: validPriority,
+    priority,
   }
 
   return [...tasks, newTask]
@@ -30,7 +32,9 @@ export function updateTask(tasks, id, title, priority = 'medium') {
     return tasks
   }
 
-  const validPriority = PRIORITY_ORDER[priority] ? priority : 'medium'
+  if (!PRIORITY_ORDER[priority]) {
+    return tasks
+  }
 
   if (!tasks.some((task) => task.id === id)) {
     return tasks
@@ -38,7 +42,7 @@ export function updateTask(tasks, id, title, priority = 'medium') {
 
   return tasks.map((task) => {
     if (task.id === id) {
-      return { ...task, title: cleanTitle, priority: validPriority }
+      return { ...task, title: cleanTitle, priority }
     }
     return task
   })

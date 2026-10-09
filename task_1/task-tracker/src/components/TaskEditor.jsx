@@ -7,8 +7,15 @@ function TaskEditor({
   onSave,
   onCancel,
 }) {
+  function handleKeyDown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onCancel()
+    }
+  }
+
   return (
-    <form className="flex w-full flex-col gap-2" onSubmit={onSave}>
+    <form className="flex w-full flex-col gap-2" onSubmit={onSave} onKeyDown={handleKeyDown}>
       <label htmlFor="task-edit-title" className="sr-only">
         Edit task title
       </label>
