@@ -99,6 +99,8 @@ The lesson from Task 01 carried over - I understand things slowly, and only by r
 
 5. **Learning to un-build.** I spent time making the app remember my tasks after a refresh (browser storage), then had to take it all out because the assignment says storage is out of scope. Reinforcing what "out of scope" means was as hard as building the feature - it felt like throwing away working code, even though it was the right call.
 
+6. **Feeling confused and unsure about the layout again.** Styling the new parts - the header search box, the two filter rows, the editor form - brought the same uncertainty back. Things sat wrong side by side, and I couldn't fix them on my own at first. Repeating the same flexbox and width ideas, and asking for a plain explanation instead of guessing, is what finally got me unstuck.
+
 ## What I used OpenCode for
 
 I used OpenCode as my coding assistant again, mostly to help with the new functions in `tasks.js`, the search/filter pipeline, and the keyboard and focus behaviour for the editor. As before, I didn't take its suggestions as-is. I ran the tests, read the code, clicked through the app, and asked it to re-explain anything I didn't understand before keeping the change.

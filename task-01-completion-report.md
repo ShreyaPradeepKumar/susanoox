@@ -91,6 +91,8 @@ The hardest part of this task wasn't the code - it was understanding what was ac
 
 5. **Understanding Tailwind while integrating it with React.** Tailwind was completely new to me, and learning it at the same time as React made it twice as confusing. Writing styles as utility classes right inside the components felt messy - I kept asking "where does the CSS actually live?" - and I had to learn to read a long row of class names like it was a stylesheet. It finally clicked when I accepted that the styling lives in the class attribute, and React's only job is deciding which components appear.
 
+6. **Feeling confused and unsure about the layout.** The layout kept acting up - the Add button spilling out at 320px, long titles shoving the controls around - and honestly I felt confused and unsure about it. I could see something was wrong but couldn't figure out how to fix it myself, and that made me doubt the whole project for a while. It took getting the same explanation a few times and one tiny class (`min-w-0`) before it clicked; the fix was small, but my lost confidence wasn't.
+
 ## What I used OpenCode for
 
 I used OpenCode (a coding assistant) throughout, especially for the tricky parts - the responsive layout at 320px, the accessibility fixes, and understanding how React state flows one way through the components.
