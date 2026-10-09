@@ -2,7 +2,8 @@
 
 A simple task list built with React, JavaScript and Tailwind CSS. Add a task,
 give it a priority, tick it off, edit it in place, and narrow the list with
-search and filters. Your tasks survive a refresh.
+search and filters. The list lives in memory only, starting from four sample
+tasks.
 
 ## Running it
 
@@ -126,17 +127,14 @@ task-tracker/
         └── TaskSummary.jsx      the counts and the "Showing X of Y" line
 ```
 
-## Where your tasks are saved
+## Where the data lives, and its limitation
 
-Tasks live in React state while the app runs and are written to the browser's
-`localStorage` on every change, so refreshing restores your list — an empty
-list stays empty. A first-time visitor starts with no tasks.
+The task list, the edit drafts and the four view controls all live in React
+state in `App.jsx`. Nothing is written anywhere else — there is no storage,
+database or backend.
 
-Search, filters and sort are deliberately *not* saved; they reset to their
-defaults on refresh.
-
-Browsers with storage switched off (private windows) are handled — the app
-falls back to memory and keeps working for the current session.
-
-*Note: browser storage was outside the original task brief and was added
-deliberately on request.*
+The app starts from, and refreshing returns to, the four sample tasks (`t1` –
+`t4`) defined at the top of `App.jsx`. **Changes are not saved:** any task you
+add, edit, complete or delete during a session is lost on refresh. That is
+deliberate — browser storage and persistence are outside this assignment, so
+the task list exists in memory only.
