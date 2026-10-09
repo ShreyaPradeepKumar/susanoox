@@ -75,7 +75,21 @@ My reviewer Mr Ponperumal found five things to fix, and I fixed all of them:
 
 To check them, I opened the app, set DevTools to 320px width, tested every box and button with the keyboard, and ran the build again. The fixed version is the one deployed as `de3a0ca`.
 
-*What I learnt here: the fixes were mostly about shrinking (`min-w-0`), telling screen readers what's going on (`aria-pressed`, `aria-invalid`, `aria-describedby`), and keeping my README honest. Small changes, but they change how usable the page is.*
+*What I learnt here: the fixes were mostly about shrinking (`min-w-0`), telling screen readers what's going on, and keeping my README honest. Small changes, but they change how usable the page is.*
+
+## Challenges I faced
+
+The hardest part of this task wasn't the code - it was understanding what was actually happening, and I had to get the same ideas explained to me again and again before they stuck.
+
+1. **React state and why the screen redraws.** My biggest struggle. For a long time I didn't get where the data lived or why changing something updated the page. I kept asking for the same explanation in plainer words until it finally clicked: "state changes, React redraws the component." Now I see the whole app as state in `App.jsx` flowing down into the components.
+
+2. **Writing the functions.** I expected the logic to be the easy part, but turning "add a task" into a working function took many tries. I had to learn to take the list *in*, return the result *out*, never touch the input, trim the title, reject blank titles, and leave every other task alone. The trickiest rule - return a **new** list when it works, return the **same** list when it's rejected - took the longest to trust; I kept accidentally changing the original list instead of returning a copy. What finally reinforced it was writing tests that check the original list is still intact afterwards.
+
+3. **Filters don't delete anything.** It genuinely confused me that the counts could say 4/2/2 while the list showed 0 tasks. I kept thinking I'd lost data. The rule - "counts describe every saved task, 'Showing X of Y' describes what's visible" - needed repeating before I stopped worrying.
+
+4. **Getting the fonts and text right.** Making the text look good - sizes, weights, wrapping, readable labels - was fiddlier than I expected. I spent time adjusting font classes one by one until rows looked clean and priorities were readable, not just coloured.
+
+5. **Understanding Tailwind while integrating it with React.** Tailwind was completely new to me, and learning it at the same time as React made it twice as confusing. Writing styles as utility classes right inside the components felt messy - I kept asking "where does the CSS actually live?" - and I had to learn to read a long row of class names like it was a stylesheet. It finally clicked when I accepted that the styling lives in the class attribute, and React's only job is deciding which components appear.
 
 ## What I used OpenCode for
 
