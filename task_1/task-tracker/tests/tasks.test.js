@@ -55,6 +55,10 @@ describe('addTask', () => {
     assert.strictEqual(addTask(sampleTasks, '     '), sampleTasks)
   })
 
+  it('rejects a priority that is not low, medium or high', () => {
+    assert.strictEqual(addTask(sampleTasks, 'Water the plants', 'urgent'), sampleTasks)
+  })
+
   it('leaves the list it was given untouched', () => {
     addTask(sampleTasks, 'Water the plants', 'high')
 
@@ -82,6 +86,10 @@ describe('updateTask', () => {
 
   it('rejects a blank title by returning the same array', () => {
     assert.strictEqual(updateTask(sampleTasks, 't1', '   ', 'high'), sampleTasks)
+  })
+
+  it('rejects a priority that is not low, medium or high', () => {
+    assert.strictEqual(updateTask(sampleTasks, 't1', 'New title', 'urgent'), sampleTasks)
   })
 
   it('returns the same array when the id does not exist', () => {

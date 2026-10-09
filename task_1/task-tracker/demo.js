@@ -37,6 +37,9 @@ const rejected = addTask(tasks, '     ')
 console.log('same array back?', rejected === tasks, '-> expected true')
 console.log('length unchanged:', tasks.length, '\n')
 
+console.log('=== addTask: unknown priority is rejected ===')
+console.log('same array back?', addTask(tasks, 'Water the plants', 'urgent') === tasks, '-> expected true\n')
+
 console.log('=== updateTask: retitle t1 and drop it to low ===')
 tasks = updateTask(tasks, 't1', '  Learn React hooks  ', 'low')
 console.table(tasks.filter((task) => task.id === 't1'))
@@ -44,7 +47,8 @@ console.log('expected: title "Learn React hooks", priority "low"\n')
 
 console.log('=== updateTask: blank title is rejected too ===')
 console.log('same array back?', updateTask(tasks, 't1', '   ') === tasks, '-> expected true')
-console.log('unknown id is rejected too?', updateTask(tasks, 'nope', 'X') === tasks, '-> expected true\n')
+console.log('unknown id is rejected too?', updateTask(tasks, 'nope', 'X') === tasks, '-> expected true')
+console.log('unknown priority is rejected too?', updateTask(tasks, 't1', 'New title', 'urgent') === tasks, '-> expected true\n')
 
 console.log('=== toggleTask: t1 pending -> completed -> pending ===')
 tasks = toggleTask(tasks, 't1')
