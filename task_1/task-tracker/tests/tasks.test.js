@@ -6,6 +6,7 @@ import {
   filterByPriority,
   filterTasks,
   getCounts,
+  isValidPriority,
   searchTasks,
   sortTasks,
   toggleTask,
@@ -59,6 +60,21 @@ describe('addTask', () => {
     assert.strictEqual(addTask(sampleTasks, 'Water the plants', 'urgent'), sampleTasks)
   })
 
+  it('rejects priorities that only exist on the object prototype', () => {
+    assert.strictEqual(addTask(sampleTasks, 'Water the plants', 'constructor'), sampleTasks)
+    assert.strictEqual(addTask(sampleTasks, 'Water the plants', 'toString'), sampleTasks)
+    assert.strictEqual(addTask(sampleTasks, 'Water the plants', '__proto__'), sampleTasks)
+    assert.equal(sampleTasks.length, 4)
+  })
+
+  it('accepts each allowed priority', () => {
+    for (const priority of ['low', 'medium', 'high']) {
+      const result = addTask(sampleTasks, 'Water the plants', priority)
+
+      assert.equal(result[4].priority, priority)
+    }
+  })
+
   it('leaves the list it was given untouched', () => {
     addTask(sampleTasks, 'Water the plants', 'high')
 
@@ -90,6 +106,13 @@ describe('updateTask', () => {
 
   it('rejects a priority that is not low, medium or high', () => {
     assert.strictEqual(updateTask(sampleTasks, 't1', 'New title', 'urgent'), sampleTasks)
+  })
+
+  it('rejects priorities that only exist on the object prototype', () => {
+    assert.strictEqual(updateTask(sampleTasks, 't1', 'New title', 'constructor'), sampleTasks)
+    assert.strictEqual(updateTask(sampleTasks, 't1', 'New title', 'toString'), sampleTasks)
+    assert.strictEqual(updateTask(sampleTasks, 't1', 'New title', '__proto__'), sampleTasks)
+    assert.equal(sampleTasks[0].title, 'Learn React basics')
   })
 
   it('returns the same array when the id does not exist', () => {
@@ -218,6 +241,29 @@ describe('getCounts', () => {
 
   it('counts the four sample tasks', () => {
     assert.deepEqual(getCounts(sampleTasks), { total: 4, pending: 2, completed: 2 })
+  })
+})
+
+describe('isValidPriority', () => {
+  it('accepts low, medium and high', () => {
+    assert.equal(isValidPriority('low'), true)
+    assert.equal(isValidPriority('medium'), true)
+    assert.equal(isValidPriority('high'), true)
+  })
+
+  it('rejects unknown priority names', () => {
+    assert.equal(isValidPriority('urgent'), false)
+    assert.equal(isValidPriority('Low'), false)
+    assert.equal(isValidPriority('constructor'), false)
+    assert.equal(isValidPriority('toString'), false)
+    assert.equal(isValidPriority('__proto__'), false)
+  })
+
+  it('rejects values that are not the exact strings', () => {
+    assert.equal(isValidPriority(true), false)
+    assert.equal(isValidPriority(3), false)
+    assert.equal(isValidPriority(null), false)
+    assert.equal(isValidPriority(undefined), false)
   })
 })
 

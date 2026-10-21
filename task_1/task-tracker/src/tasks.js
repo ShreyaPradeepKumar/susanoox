@@ -4,6 +4,12 @@ const PRIORITY_ORDER = {
   low: 1,
 }
 
+const PRIORITY_VALUES = ['low', 'medium', 'high']
+
+export function isValidPriority(value) {
+  return PRIORITY_VALUES.includes(value)
+}
+
 export function addTask(tasks, title, priority = 'medium') {
   const cleanTitle = title.trim()
 
@@ -11,7 +17,7 @@ export function addTask(tasks, title, priority = 'medium') {
     return tasks
   }
 
-  if (!PRIORITY_ORDER[priority]) {
+  if (!isValidPriority(priority)) {
     return tasks
   }
 
@@ -32,7 +38,7 @@ export function updateTask(tasks, id, title, priority = 'medium') {
     return tasks
   }
 
-  if (!PRIORITY_ORDER[priority]) {
+  if (!isValidPriority(priority)) {
     return tasks
   }
 
