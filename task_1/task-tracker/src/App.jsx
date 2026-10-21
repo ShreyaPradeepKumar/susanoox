@@ -75,6 +75,7 @@ function App() {
 
     setTasks(addTask(tasks, title, priority))
     setTitle('')
+    setPriority('medium')
     setError('')
   }
 
