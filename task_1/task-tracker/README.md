@@ -81,7 +81,7 @@ for.
 npm test
 ```
 
-`tests/tasks.test.js` holds 33 assertions covering every function: results,
+`tests/tasks.test.js` covers every function: results,
 the "returns the same array when rejected" rule, and the case-insensitivity of
 search. They run on Node's built-in test runner with `node:assert`, so no
 extra packages are installed. If a check breaks the run exits non-zero and
@@ -109,7 +109,7 @@ task-tracker/
 ├── vite.config.js        registers the react and tailwind plugins, sets the base path
 ├── demo.js               run-through of the nine functions (npm run demo)
 ├── tests/
-│   └── tasks.test.js     33 assertions (npm test)
+│   └── tasks.test.js     assertions covering every function (npm test)
 └── src/
     ├── main.jsx          entry point, renders <App />
     ├── index.css         one line: @import "tailwindcss";
