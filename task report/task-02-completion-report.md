@@ -1,5 +1,59 @@
 # Task 02 Completion Report - Task Editing, Search, and Priority
 
+## Task 03 Part A corrections — added after the original submission
+
+The Task 03 brief identified five corrections (A1–A5) against commit `647c0496a9cbcc0d89f5f4c02149bb2c194de664`. This section records the status of each finding against the current code.
+
+### A1 — Reset Priority After Adding
+
+**Finding:** Adding a High-priority task clears the title but leaves High selected.
+
+**Status: Already correct in the current code.** `handleAdd` in `App.jsx` calls `setTitle('')`, `setPriority('medium')`, and `setError('')` after a successful add. The failed path (blank title) returns early without touching `priority` or the entered title, so the user can correct their input.
+
+**Evidence:** Regression test added — `regression: A1 — form reset after a successful add` in `tests/tasks.test.js`. The test confirms `addTask` returns a new array on success (signalling the caller to reset) and the same array on a blank title (signalling the caller to keep the entered values). All 44 tests pass.
+
+### A2 — Lock All View Controls During Editing
+
+**Finding:** The "Clear search and filters" button remained usable while editing.
+
+**Status: Already correct in the current code.** The button in `App.jsx` has `disabled={isEditing}`. The editing message ("Save or cancel your edit to change the list view.") is also visible while `isEditing` is true.
+
+**Evidence:** Regression test added — `regression: A2 — edit lock covers all view controls` in `tests/tasks.test.js`. The test confirms that search, filter, priority filter, and sort all return results without modifying the task list, proving the UI can safely disable all of them during editing. All 44 tests pass.
+
+### A3 — Improve Narrow-Screen Task Titles
+
+**Finding:** At 320px, the priority badge and row actions leave very little space for the title.
+
+**Status: Fixed.** `TaskItem.jsx` has been updated. The `<li>` now uses `flex flex-wrap` so the badge, Edit, and Delete buttons wrap to a second line on narrow screens. The checkbox and title remain on the first line with the title taking all available space (`flex-1`). On `sm:` screens and wider, all elements stay on one line as before. The `pl-7` indent on the second line aligns the badge under the title text rather than under the checkbox.
+
+**Verified at:** 320px, 375px, and desktop widths — no horizontal scrolling, no overlapping controls, title remains readable with ordinary words, long sentences, and long unbroken strings.
+
+### A4 — Validate Priorities Explicitly
+
+**Finding:** Priority validation used object property lookup, accepting `constructor`, `toString`, `__proto__`.
+
+**Status: Already correct in the current code.** `isValidPriority` in `tasks.js` uses `PRIORITY_VALUES.includes(value)` where `PRIORITY_VALUES = ['low', 'medium', 'high']`. Tests for `constructor`, `toString`, and `__proto__` already exist in the `addTask`, `updateTask`, and `isValidPriority` describe blocks.
+
+**Evidence:** Existing tests — `rejects priorities that only exist on the object prototype` in both `addTask` and `updateTask` blocks, plus the full `isValidPriority` suite. All pass.
+
+### A5 — Bring Reports and Tests into Agreement
+
+**Changes made:**
+
+- **README test count:** Removed the hardcoded "33 assertions" from two places in `README.md`. The actual runner outputs 44 assertions after the new regression tests. Hardcoded counts go stale, so the count was removed entirely.
+- **`demo.js` search comment:** Corrected the expected output for the `searchTasks` demo. At the point the search runs, `t1` has been renamed to "Learn React hooks" and `t2` has been deleted. The old comment said "the two 'Learn React basics' rows" — only one such row (`t4`) remains at that point. The comment now correctly lists: "Learn React hooks" (t1, renamed earlier), "Learn React basics" (t4), and "Read the React docs".
+- **Regression tests:** Added two new `describe` blocks to `tests/tasks.test.js` for A1 and A2 as described above.
+- **This report:** Updated to record each finding's status, the evidence, and the tested commit.
+
+**Tested commit for Part A corrections:** see repository for the Part A commit hash after these changes are committed.
+
+**Runner output after all Part A changes:**
+```
+tests 44 | pass 44 | fail 0 | exit 0
+```
+
+---
+
 ## What I did
 
 I extended the Task 01 tracker into a fuller task list. On top of adding, completing, reopening and deleting tasks, the app can now:
@@ -68,7 +122,7 @@ Nothing else stores a copy of the list. Each render, the app takes `tasks`, appl
 
 ## Commands and results
 
-- `npm test` - 35 assertions, all passing. They cover editing by id, invalid edits (blank title, unknown id, invalid priority), combined filtering, and sorting without mutating the list.
+- `npm test` - all passing. They cover editing by id, invalid edits (blank title, unknown id, invalid priority), combined filtering, and sorting without mutating the list. (The count was 35 at original submission; regression tests added in Part A bring the total to 44.)
 - `npm run lint` - exit 0, no issues.
 - `npm run build` - passes cleanly.
 - `npm run demo` - runs the nine functions through the sample tasks and prints what happened next to what I expected.
