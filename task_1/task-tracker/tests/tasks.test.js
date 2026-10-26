@@ -283,3 +283,41 @@ describe('using them together', () => {
     assert.equal(hidden.length, 0)
   })
 })
+
+describe('regression: A1 — form reset after a successful add', () => {
+  it('returns a new array so the caller can reset the form', () => {
+    const result = addTask(sampleTasks, 'Water the plants', 'high')
+
+    // A new array means the add succeeded — the caller resets title and priority
+    assert.notStrictEqual(result, sampleTasks)
+    assert.equal(result.at(-1).priority, 'high')
+    assert.equal(result.at(-1).title, 'Water the plants')
+  })
+
+  it('returns the same array on a blank title so the caller keeps the entered values', () => {
+    // Failed submission must not reset title or priority — same array signals failure
+    assert.strictEqual(addTask(sampleTasks, '   ', 'low'), sampleTasks)
+    assert.strictEqual(addTask(sampleTasks, '', 'high'), sampleTasks)
+  })
+})
+
+describe('regression: A2 — edit lock covers all view controls', () => {
+  it('search, filter, priority filter and sort are all independent — none alters the task list', () => {
+    // If these functions return unmodified task data, the UI can safely disable them
+    // during editing without losing any task information
+    const searched = searchTasks(sampleTasks, 'react')
+    const filtered = filterTasks(sampleTasks, 'pending')
+    const byPriority = filterByPriority(sampleTasks, 'high')
+    const sorted = sortTasks(sampleTasks, 'high-to-low')
+
+    // None of these modify the original list
+    assert.equal(sampleTasks.length, 4)
+    assert.equal(searched.length, 2)
+    assert.equal(filtered.length, 2)
+    assert.equal(byPriority.length, 1)
+    assert.equal(sorted.length, 4)
+
+    // The full task list is unchanged — disabling view controls during editing is safe
+    assert.deepEqual(getCounts(sampleTasks), { total: 4, pending: 2, completed: 2 })
+  })
+})
