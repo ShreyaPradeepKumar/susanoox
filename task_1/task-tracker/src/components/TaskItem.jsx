@@ -56,7 +56,7 @@ function TaskItem({
   }
 
   return (
-    <li className="flex items-center gap-3 rounded border border-slate-200 px-3 py-2">
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-slate-200 px-3 py-2">
       <input
         id={`task-${task.id}`}
         type="checkbox"
@@ -71,28 +71,30 @@ function TaskItem({
       >
         {task.title}
       </label>
-      <span
-        className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${priorityStyles[task.priority]}`}
-      >
-        {priorityLabels[task.priority]}
-      </span>
-      <button
-        type="button"
-        ref={editButtonRef}
-        onClick={() => onEdit(task)}
-        disabled={disabled}
-        className="shrink-0 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
-      >
-        Edit
-      </button>
-      <button
-        type="button"
-        onClick={() => onDelete(task.id)}
-        disabled={disabled}
-        className="shrink-0 text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
-      >
-        Delete
-      </button>
+      <div className="flex w-full items-center gap-2 pl-7 sm:w-auto sm:pl-0">
+        <span
+          className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${priorityStyles[task.priority]}`}
+        >
+          {priorityLabels[task.priority]}
+        </span>
+        <button
+          type="button"
+          ref={editButtonRef}
+          onClick={() => onEdit(task)}
+          disabled={disabled}
+          className="shrink-0 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(task.id)}
+          disabled={disabled}
+          className="shrink-0 text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+        >
+          Delete
+        </button>
+      </div>
     </li>
   )
 }
