@@ -62,7 +62,7 @@ console.log('remaining ids:', tasks.map((task) => task.id).join(', '), '\n')
 
 console.log('=== searchTasks: capitals make no difference ===')
 console.table(searchTasks(tasks, 'REACT'))
-console.log('expected: every title containing "react" — the two "Learn React basics" rows, the edited "Learn React hooks", and "Read the React docs"\n')
+console.log('expected: every title containing "react" — "Learn React hooks" (t1, renamed earlier), "Learn React basics" (t4), and "Read the React docs"\n')
 
 console.log('=== searchTasks: empty search returns the same array ===')
 console.log('same array back?', searchTasks(tasks, '') === tasks, '-> expected true\n')
