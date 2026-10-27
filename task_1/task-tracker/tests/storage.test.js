@@ -367,4 +367,19 @@ describe('saveTasks', () => {
     assert.equal(stored.otherKey, 'some-value')
     assert.equal(stored[STORAGE_KEY], JSON.stringify(sampleTasks))
   })
+
+  it('saves an empty array [] without deleting or resetting the key', () => {
+    const stored = {}
+    const storage = {
+      getItem: () => null,
+      setItem: (key, value) => {
+        stored[key] = value
+      },
+    }
+
+    const result = saveTasks(storage, [])
+
+    assert.equal(result.success, true)
+    assert.equal(stored[STORAGE_KEY], '[]')
+  })
 })

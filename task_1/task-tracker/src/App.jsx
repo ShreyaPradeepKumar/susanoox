@@ -26,26 +26,24 @@ const startingTasks = [
   { id: 't4', title: 'Learn React basics', completed: true, priority: 'low' },
 ]
 
+function getInitialStorageState() {
+  const result = loadTasks(localStorage)
+  return {
+    status: result.status,
+    tasks:
+      result.status === 'loaded'
+        ? result.tasks
+        : result.status === 'missing'
+          ? startingTasks
+          : [],
+    temporaryMode: result.status === 'invalid' || result.status === 'unreadable',
+  }
+}
+
 function App() {
-  const isInitializing = useRef(true)
-
-  const [tasks, setTasks] = useState(() => {
-    const result = loadTasks(localStorage)
-
-    if (result.status === 'loaded') {
-      return result.tasks
-    }
-    if (result.status === 'missing') {
-      return startingTasks
-    }
-    return []
-  })
-
-  const [temporaryMode, setTemporaryMode] = useState(() => {
-    const result = loadTasks(localStorage)
-    return result.status === 'invalid' || result.status === 'unreadable'
-  })
-
+  const [initialStorage] = useState(getInitialStorageState)
+  const [tasks, setTasks] = useState(initialStorage.tasks)
+  const [temporaryMode, setTemporaryMode] = useState(initialStorage.temporaryMode)
   const [saveError, setSaveError] = useState(null)
 
   const [title, setTitle] = useState('')
@@ -60,6 +58,7 @@ function App() {
   const [draftPriority, setDraftPriority] = useState('medium')
   const [editError, setEditError] = useState('')
   const closedEditId = useRef(null)
+  const isFirstMount = useRef(true)
 
   const counts = getCounts(tasks)
   const isEditing = editingId !== null
@@ -87,20 +86,26 @@ function App() {
   }, [editingId, visibleTasks])
 
   useEffect(() => {
-    isInitializing.current = false
-  }, [])
+    if (isFirstMount.current) {
+      isFirstMount.current = false
+      if (initialStorage.status === 'missing') {
+        const result = saveTasks(localStorage, tasks)
+        if (!result.success) {
+          queueMicrotask(() => setSaveError(result.error))
+        }
+      }
+      return
+    }
 
-  useEffect(() => {
-    if (isInitializing.current) return
     if (temporaryMode) return
 
     const result = saveTasks(localStorage, tasks)
     if (!result.success) {
-      setSaveError(result.error)
+      queueMicrotask(() => setSaveError(result.error))
     } else {
-      setSaveError(null)
+      queueMicrotask(() => setSaveError(null))
     }
-  }, [tasks, temporaryMode])
+  }, [tasks, temporaryMode, initialStorage.status])
 
   function handleAdd(event) {
     event.preventDefault()
@@ -144,6 +149,15 @@ function App() {
     const result = saveTasks(localStorage, tasks)
     if (result.success) {
       setTemporaryMode(false)
+      setSaveError(null)
+    } else {
+      setSaveError(result.error)
+    }
+  }
+
+  function handleRetrySave() {
+    const result = saveTasks(localStorage, tasks)
+    if (result.success) {
       setSaveError(null)
     } else {
       setSaveError(result.error)
@@ -203,13 +217,28 @@ function App() {
             </button>
           </div>
         )}
-        <div className="mb-5 flex items-center gap-3">
-          <h1 className="shrink-0 text-2xl font-bold text-slate-800">Task Tracker</h1>
-          {saveError && (
-            <p className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+
+        {saveError && (
+          <div
+            role="alert"
+            className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            <p className="mb-2">
               Changes could not be saved: {saveError}. Your changes are still in memory but may be lost on refresh.
             </p>
-          )}
+            <button
+              type="button"
+              onClick={handleRetrySave}
+              disabled={isEditing}
+              className="rounded border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Retry saving
+            </button>
+          </div>
+        )}
+
+        <div className="mb-5 flex items-center gap-3">
+          <h1 className="shrink-0 text-2xl font-bold text-slate-800">Task Tracker</h1>
           <SearchInput
             search={search}
             onSearchChange={setSearch}
@@ -277,6 +306,9 @@ function App() {
           completed={counts.completed}
           showing={visibleTasks.length}
         />
+        <p className="mt-4 text-center text-xs text-slate-500">
+          Tasks are saved in this browser, not to an account or cloud service.
+        </p>
       </div>
     </div>
   )

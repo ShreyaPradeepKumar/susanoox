@@ -1,9 +1,8 @@
 # Task Tracker
 
-A simple task list built with React, JavaScript and Tailwind CSS. Add a task,
-give it a priority, tick it off, edit it in place, and narrow the list with
-search and filters. The list lives in memory only, starting from four sample
-tasks.
+A task tracker built with React, JavaScript, and Tailwind CSS. Add tasks, assign priorities (Low, Medium, High), toggle completion, edit tasks in place, and filter or sort the list with instant search, status filters, priority filters, and priority sorting.
+
+In Task 03, browser persistence via `localStorage` was added: saved tasks, completion status, priorities, and original list order survive page refreshes and browser restarts within the same browser profile.
 
 ## Running it
 
@@ -14,127 +13,133 @@ npm run dev
 
 Then open http://localhost:5173/susanoox/ in your browser.
 
-(`npm install` only needs running once. To stop the dev server, press
-`Ctrl + C` in the terminal running it. The `/susanoox/` path comes from the
-`base` setting in `vite.config.js` — the app is deployed under that path on
-GitHub Pages.)
+(`npm install` only needs running once. To stop the dev server, press `Ctrl + C` in the terminal running it. The `/susanoox/` path comes from the `base` setting in `vite.config.js` — the app is deployed under that path on GitHub Pages.)
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Start the dev server |
-| `npm test` | Run the checks in `tests/tasks.test.js` |
-| `npm run demo` | Print a run-through of the nine task functions |
-| `npm run build` | Create a production copy in `dist/` |
-| `npm run preview` | Preview the production build |
-| `npm run lint` | Check the code for problems |
+| `npm run dev` | Start the local Vite development server |
+| `npm test` | Run test suites in `tests/tasks.test.js` and `tests/storage.test.js` |
+| `npm run demo` | Print a demonstration run-through of the nine task functions |
+| `npm run build` | Create an optimized production build in `dist/` |
+| `npm run preview` | Preview the local production build |
+| `npm run lint` | Check code using oxlint |
 
 ## How it fits together
 
-`App.jsx` owns everything in twelve pieces of React state:
+### State Ownership in `App.jsx`
 
-| State | What it holds |
-| --- | --- |
-| `tasks` | the task list itself — the source of truth |
-| `title`, `priority` | the Add form |
-| `search`, `filter`, `priorityFilter`, `sort` | the four view controls |
-| `error` | the Add form's validation message |
-| `editingId`, `draftTitle`, `draftPriority`, `editError` | the open editor's draft |
+`App.jsx` owns the application state:
 
-The nine components in `components/` only display that data and report clicks
-back up to `App`. Data flows one way: downward through props, upward through
-callbacks.
+| State | Purpose | Persisted? |
+| --- | --- | --- |
+| `tasks` | Canonical array of task records (source of truth) | Yes (`localStorage`) |
+| `temporaryMode` | Boolean flag set when stored data is invalid or unreadable | No (computed on startup) |
+| `saveError` | Error message string when writing to storage fails, else `null` | No (runtime state) |
+| `title`, `priority` | Add-task form input and priority selection (defaults to `medium`) | No |
+| `error` | Validation error message for the add-task form | No |
+| `editingId`, `draftTitle`, `draftPriority`, `editError` | In-place editor state and validation draft | No |
+| `search`, `filter`, `priorityFilter`, `sort` | Active view filters and sort order | No (defaults on startup) |
 
-The view controls are **not** copies of the list — they are windows onto it.
-Search, both filters and sorting are applied to `tasks` on every render and
-only the result is displayed, so nothing a filter does can ever change a task.
+Data flows downward through props and upward through event callbacks. View controls (search, filter, priority filter, sort) do **not** mutate or create copies of the stored tasks; they derive visible tasks dynamically on each render.
 
-The task logic lives in `src/tasks.js` as plain JavaScript functions, kept
-separate from React so they can be tested and reused on their own:
+### Task Logic (`src/tasks.js`)
+
+Plain JavaScript helper functions handle pure data operations:
 
 | Function | Purpose |
 | --- | --- |
-| `addTask(tasks, title, priority)` | Adds a task, trimming the title and setting its priority (defaults to `'medium'`). Rejects empty or whitespace-only titles |
-| `updateTask(tasks, id, title, priority)` | Replaces the title and priority of one task. Rejects a blank title or an unknown id |
-| `deleteTask(tasks, id)` | Removes the task with the matching id |
-| `toggleTask(tasks, id)` | Flips one task between pending and completed |
-| `filterTasks(tasks, status)` | Returns tasks matching `'all'`, `'pending'` or `'completed'` |
-| `searchTasks(tasks, query)` | Returns tasks whose title contains the text, ignoring capitals and surrounding spaces |
-| `filterByPriority(tasks, priority)` | Returns tasks matching `'all'`, `'low'`, `'medium'` or `'high'` |
-| `sortTasks(tasks, order)` | Returns a copy sorted `'high-to-low'`, or the original list for `'original'` |
-| `getCounts(tasks)` | Returns `{ total, pending, completed }` — always over the **whole** list, never the filtered view |
+| `addTask(tasks, title, priority)` | Appends a task with a trimmed title, UUID, and priority (defaults to `'medium'`). Rejects blank titles or invalid priorities. |
+| `updateTask(tasks, id, title, priority)` | Updates title and priority of a specific task by ID. Preserves task ID and completion status. |
+| `deleteTask(tasks, id)` | Removes the task matching the specified ID. |
+| `toggleTask(tasks, id)` | Flips `completed` between `true` and `false`. |
+| `filterTasks(tasks, status)` | Filters by status (`'all'`, `'pending'`, `'completed'`). |
+| `searchTasks(tasks, query)` | Case-insensitive title search ignoring leading/trailing spaces. |
+| `filterByPriority(tasks, priority)` | Filters by priority (`'all'`, `'low'`, `'medium'`, `'high'`). |
+| `sortTasks(tasks, order)` | Returns a priority-sorted copy (`'high-to-low'`) or original list (`'original'`). |
+| `getCounts(tasks)` | Computes `{ total, pending, completed }` across the **entire** task array. |
+| `isValidPriority(value)` | Strictly validates allowed priority strings (`'low'`, `'medium'`, `'high'`). |
 
-None of these functions edit the list you pass in. A valid change returns a
-**new** array; a rejected change (a blank title) returns the **original array
-unchanged**, so a caller can tell the two apart by comparing references. React
-relies on this: it re-renders when it receives a new array, and ignores the
-change when it gets the same one back.
+All task functions are immutable: valid changes return a **new** array, while rejected operations return the original array reference unchanged.
 
-Because `getCounts` always describes every task, the counts can differ from
-what is on screen — that is what the separate `Showing X of Y tasks` line is
-for.
+### Storage Architecture (`src/storage.js`)
 
-## The checks
+All persistence logic is encapsulated in `src/storage.js`:
+
+- **Storage Key**: `susanoox.task-tracker.tasks.v1`
+- **Stored Format**: JSON array of task objects (`[{ id, title, completed, priority }]`).
+- **Validation Rules**:
+  - Top-level value must be an array.
+  - Every entry must be a non-null object.
+  - `id` must be a non-empty string, and all IDs must be unique.
+  - `title` must be a non-empty string with non-whitespace content.
+  - `completed` must be a boolean.
+  - `priority` must be strictly `'low'`, `'medium'`, or `'high'`.
+- **Loading Outcomes**:
+  - `missing`: The key does not exist. App initializes with sample tasks and saves them.
+  - `loaded`: Valid task array parsed (including valid empty array `[]`). App initializes with those tasks.
+  - `invalid`: Broken JSON or invalid record structure. Existing storage is untouched; app starts in temporary mode with `[]`.
+  - `unreadable`: Storage read threw an error (e.g. security blocked). Storage is untouched; app starts in temporary mode with `[]`.
+- **Saving Operations**:
+  - `saveTasks(storage, tasks)`: Serializes tasks to JSON and writes to `STORAGE_KEY`. Reports `{ success: true }` or `{ success: false, error }`. Only accesses `STORAGE_KEY`.
+
+## Storage Behavior and Recovery
+
+1. **First Visit**: When no saved data exists, the application loads four initial sample tasks and persists them to `localStorage`.
+2. **Refresh & Restorations**: On subsequent visits, previously saved tasks (including an empty list `[]` after deleting all tasks) are restored without re-inserting sample data.
+3. **Invalid or Unreadable Data**:
+   - If corrupted JSON, schema violations, or duplicate IDs are detected, the stored data is preserved untouched.
+   - The app starts with an empty temporary list and displays a warning banner explaining that changes are temporary.
+   - Automatic saving is suspended to protect the existing stored content.
+   - The user can click **Replace saved data with current tasks** (prompting a confirmation) to explicitly overwrite storage with their current in-memory tasks and resume auto-saving.
+4. **Save Failures**:
+   - If writing to `localStorage` fails (e.g. quota exceeded or storage disabled), the in-memory task state remains fully usable.
+   - A warning banner alerts the user that changes could not be saved and offers a **Retry saving** button that re-attempts saving the latest full task list.
+
+## Browser Storage Limitations
+
+- **Browser Profile and Origin Isolation**: Saved tasks are tied to the specific browser profile and site origin (`protocol + domain + port`). Tasks saved on GitHub Pages are not shared with the local Vite development site (`localhost`), another browser, another browser profile, or another device.
+- **No Cloud Synchronization**: There is no backend database or cloud account synchronization.
+- **Multiple Tabs**: Simultaneous edits in multiple open tabs are not coordinated and can overwrite each other's stored data on subsequent saves.
+- **Private Browsing and Clearing Data**: Private/Incognito windows may clear `localStorage` when the session is closed. Manually clearing site data or browser cache also erases stored tasks.
+
+## The Checks
+
+Run the automated test suites:
 
 ```bash
 npm test
 ```
 
-`tests/tasks.test.js` covers every function: results,
-the "returns the same array when rejected" rule, and the case-insensitivity of
-search. They run on Node's built-in test runner with `node:assert`, so no
-extra packages are installed. If a check breaks the run exits non-zero and
-prints what was expected versus what actually happened.
+The tests run on Node's built-in test runner (`node --test`) without external testing dependencies:
+- `tests/tasks.test.js`: Covers task CRUD logic, filtering, search, sorting, counts, immutability, priority validation, form reset regression (A1), and edit lock regression (A2).
+- `tests/storage.test.js`: Covers storage key constant, JSON round trips, task and list schema validation, invalid priorities/prototype keys, corrupted JSON, missing vs. empty array handling, simulated read/write failures, and isolation from other storage keys.
 
-## Trying the functions on their own
-
-`demo.js` imports the nine functions and runs them against four sample tasks,
-printing the result of each step: adding with and without a priority,
-rejecting a blank title, updating, toggling, deleting, searching, filtering by
-status and priority, sorting, and counting.
-
-```bash
-npm run demo
-```
-
-It is kept out of `src/` and nothing imports it, so it never runs in the
-browser and never affects the app.
-
-## Project structure
+## Project Structure
 
 ```
 task-tracker/
-├── index.html            page shell, contains an empty <div id="root">
-├── vite.config.js        registers the react and tailwind plugins, sets the base path
-├── demo.js               run-through of the nine functions (npm run demo)
+├── index.html            page shell with mount container
+├── vite.config.js        registers React and Tailwind plugins, sets base path
+├── demo.js               run-through of task functions (npm run demo)
 ├── tests/
-│   └── tasks.test.js     assertions covering every function (npm test)
+│   ├── tasks.test.js     task function assertions & regressions
+│   └── storage.test.js   storage validation & serialization assertions
 └── src/
-    ├── main.jsx          entry point, renders <App />
-    ├── index.css         one line: @import "tailwindcss";
-    ├── tasks.js          the nine task functions
-    ├── App.jsx           the useState hooks and event handlers
+    ├── main.jsx          application entry point
+    ├── index.css         Tailwind styles import
+    ├── tasks.js          pure task management functions
+    ├── storage.js        localStorage contract, validators, load and save helpers
+    ├── App.jsx           React state, effects, storage integration, and layout
     └── components/
-        ├── TaskInput.jsx        title input, priority select, Add button, error
-        ├── SearchInput.jsx      the search box, beside the heading
-        ├── FilterButtons.jsx    All / Pending / Completed
-        ├── PriorityFilter.jsx   All / Low / Medium / High
-        ├── SortSelect.jsx       Original order / Priority: High to Low
-        ├── TaskList.jsx         the list, or an empty message
-        ├── TaskItem.jsx         one row: checkbox, title, priority, Edit, Delete
-        ├── TaskEditor.jsx       the in-row form: title, priority, Save, Cancel
-        └── TaskSummary.jsx      the counts and the "Showing X of Y" line
+        ├── TaskInput.jsx        add-task title input, priority select, button
+        ├── SearchInput.jsx      title search field
+        ├── FilterButtons.jsx    status filter buttons (All / Pending / Completed)
+        ├── PriorityFilter.jsx   priority filter buttons (All / Low / Medium / High)
+        ├── SortSelect.jsx       order selector (Original / Priority: High to Low)
+        ├── TaskList.jsx         list container or empty state notification
+        ├── TaskItem.jsx         row display, responsive wrapping, Edit & Delete buttons
+        ├── TaskEditor.jsx       inline edit form with title and priority controls
+        └── TaskSummary.jsx      task counters and showing indicator
 ```
-
-## Where the data lives, and its limitation
-
-The task list, the edit drafts and the four view controls all live in React
-state in `App.jsx`. Nothing is written anywhere else — there is no storage,
-database or backend.
-
-The app starts from, and refreshing returns to, the four sample tasks (`t1` –
-`t4`) defined at the top of `App.jsx`. **Changes are not saved:** any task you
-add, edit, complete or delete during a session is lost on refresh. That is
-deliberate — browser storage and persistence are outside this assignment, so
-the task list exists in memory only.
