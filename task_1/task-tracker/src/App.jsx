@@ -6,6 +6,7 @@ import SortSelect from './components/SortSelect.jsx'
 import TaskInput from './components/TaskInput.jsx'
 import TaskList from './components/TaskList.jsx'
 import TaskSummary from './components/TaskSummary.jsx'
+import { loadTasks, saveTasks } from './storage.js'
 import {
   addTask,
   deleteTask,
@@ -26,7 +27,27 @@ const startingTasks = [
 ]
 
 function App() {
-  const [tasks, setTasks] = useState(startingTasks)
+  const isInitializing = useRef(true)
+
+  const [tasks, setTasks] = useState(() => {
+    const result = loadTasks(localStorage)
+
+    if (result.status === 'loaded') {
+      return result.tasks
+    }
+    if (result.status === 'missing') {
+      return startingTasks
+    }
+    return []
+  })
+
+  const [temporaryMode] = useState(() => {
+    const result = loadTasks(localStorage)
+    return result.status === 'invalid' || result.status === 'unreadable'
+  })
+
+  const [saveError, setSaveError] = useState(null)
+
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('medium')
   const [filter, setFilter] = useState('all')
@@ -64,6 +85,22 @@ function App() {
       closedEditId.current = null
     }
   }, [editingId, visibleTasks])
+
+  useEffect(() => {
+    isInitializing.current = false
+  }, [])
+
+  useEffect(() => {
+    if (isInitializing.current) return
+    if (temporaryMode) return
+
+    const result = saveTasks(localStorage, tasks)
+    if (!result.success) {
+      setSaveError(result.error)
+    } else {
+      setSaveError(null)
+    }
+  }, [tasks, temporaryMode])
 
   function handleAdd(event) {
     event.preventDefault()
@@ -129,6 +166,11 @@ function App() {
       <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-5">
         <div className="mb-5 flex items-center gap-3">
           <h1 className="shrink-0 text-2xl font-bold text-slate-800">Task Tracker</h1>
+          {saveError && (
+            <p className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              Changes could not be saved: {saveError}. Your changes are still in memory but may be lost on refresh.
+            </p>
+          )}
           <SearchInput
             search={search}
             onSearchChange={setSearch}
