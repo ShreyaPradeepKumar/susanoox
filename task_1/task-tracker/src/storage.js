@@ -1,10 +1,8 @@
+import { isValidPriority } from './priority.js'
+
+export { isValidPriority }
+
 export const STORAGE_KEY = 'susanoox.task-tracker.tasks.v1';
-
-const VALID_PRIORITIES = ['low', 'medium', 'high'];
-
-export function isValidPriority(value) {
-  return VALID_PRIORITIES.includes(value);
-}
 
 export function validateTask(task) {
   if (task === null || typeof task !== 'object' || Array.isArray(task)) {

@@ -12,6 +12,8 @@ import {
   saveTasks,
   saveTasksToBrowser,
 } from '../src/storage.js'
+import { isValidPriority as sharedPriority } from '../src/priority.js'
+import { isValidPriority as taskPriority } from '../src/tasks.js'
 
 const sampleTasks = [
   { id: 't1', title: 'Learn React basics', completed: false, priority: 'high' },
@@ -52,6 +54,11 @@ describe('JSON round trip', () => {
 })
 
 describe('isValidPriority', () => {
+  it('reuses one shared rule in tasks and storage', () => {
+    assert.strictEqual(isValidPriority, sharedPriority)
+    assert.strictEqual(taskPriority, sharedPriority)
+  })
+
   it('accepts low, medium and high', () => {
     assert.equal(isValidPriority('low'), true)
     assert.equal(isValidPriority('medium'), true)

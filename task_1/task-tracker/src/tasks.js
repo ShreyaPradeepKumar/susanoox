@@ -1,16 +1,14 @@
+import { DEFAULT_PRIORITY, isValidPriority } from './priority.js'
+
+export { isValidPriority }
+
 const PRIORITY_ORDER = {
   high: 3,
   medium: 2,
   low: 1,
 }
 
-const PRIORITY_VALUES = ['low', 'medium', 'high']
-
-export function isValidPriority(value) {
-  return PRIORITY_VALUES.includes(value)
-}
-
-export function addTask(tasks, title, priority = 'medium') {
+export function addTask(tasks, title, priority = DEFAULT_PRIORITY) {
   const cleanTitle = title.trim()
 
   if (cleanTitle === '') {
@@ -31,7 +29,7 @@ export function addTask(tasks, title, priority = 'medium') {
   return [...tasks, newTask]
 }
 
-export function updateTask(tasks, id, title, priority = 'medium') {
+export function updateTask(tasks, id, title, priority = DEFAULT_PRIORITY) {
   const cleanTitle = title.trim()
 
   if (cleanTitle === '') {
