@@ -6,8 +6,11 @@ import {
   validateTask,
   validateTaskList,
   parseAndValidateTasks,
+  getBrowserStorage,
   loadTasks,
+  loadTasksFromBrowser,
   saveTasks,
+  saveTasksToBrowser,
 } from '../src/storage.js'
 
 const sampleTasks = [
@@ -320,6 +323,58 @@ describe('loadTasks', () => {
 
     assert.equal(result.status, 'unreadable')
     assert.equal(result.error, 'storage blocked')
+  })
+})
+
+describe('protected browser storage access', () => {
+  it('reports unreadable when obtaining localStorage throws', () => {
+    const result = loadTasksFromBrowser(() => {
+      throw new Error('storage access blocked')
+    })
+
+    assert.equal(result.status, 'unreadable')
+    assert.equal(result.error, 'storage access blocked')
+  })
+
+  it('reports failure when obtaining localStorage throws during save', () => {
+    const result = saveTasksToBrowser(sampleTasks, () => {
+      throw new Error('storage access blocked')
+    })
+
+    assert.equal(result.success, false)
+    assert.equal(result.error, 'storage access blocked')
+  })
+
+  it('reports unreadable when the storage object is unavailable', () => {
+    const result = loadTasksFromBrowser(() => ({
+      storage: null,
+      error: 'Browser storage is not available.',
+    }))
+
+    assert.equal(result.status, 'unreadable')
+    assert.equal(result.error, 'Browser storage is not available.')
+  })
+
+  it('reports failure when the storage object is unavailable during save', () => {
+    const result = saveTasksToBrowser(sampleTasks, () => ({
+      storage: null,
+      error: 'Browser storage is not available.',
+    }))
+
+    assert.equal(result.success, false)
+    assert.equal(result.error, 'Browser storage is not available.')
+  })
+
+  it('returns an error result when the browser has no localStorage', () => {
+    const result = getBrowserStorage()
+
+    assert.equal(result.storage, null)
+    assert.equal(typeof result.error, 'string')
+  })
+
+  it('rejects a null storage object instead of throwing', () => {
+    assert.equal(loadTasks(null).status, 'unreadable')
+    assert.equal(saveTasks(null, sampleTasks).success, false)
   })
 })
 

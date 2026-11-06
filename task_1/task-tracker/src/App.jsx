@@ -6,7 +6,7 @@ import SortSelect from './components/SortSelect.jsx'
 import TaskInput from './components/TaskInput.jsx'
 import TaskList from './components/TaskList.jsx'
 import TaskSummary from './components/TaskSummary.jsx'
-import { loadTasks, saveTasks } from './storage.js'
+import { loadTasksFromBrowser, saveTasksToBrowser } from './storage.js'
 import {
   addTask,
   deleteTask,
@@ -27,7 +27,7 @@ const startingTasks = [
 ]
 
 function getInitialStorageState() {
-  const result = loadTasks(localStorage)
+  const result = loadTasksFromBrowser()
   return {
     status: result.status,
     tasks:
@@ -45,6 +45,7 @@ function App() {
   const [tasks, setTasks] = useState(initialStorage.tasks)
   const [temporaryMode, setTemporaryMode] = useState(initialStorage.temporaryMode)
   const [saveError, setSaveError] = useState(null)
+  const [pendingReplacement, setPendingReplacement] = useState(false)
 
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('medium')
@@ -89,7 +90,7 @@ function App() {
     if (isFirstMount.current) {
       isFirstMount.current = false
       if (initialStorage.status === 'missing') {
-        const result = saveTasks(localStorage, tasks)
+        const result = saveTasksToBrowser(tasks)
         if (!result.success) {
           queueMicrotask(() => setSaveError(result.error))
         }
@@ -99,7 +100,7 @@ function App() {
 
     if (temporaryMode) return
 
-    const result = saveTasks(localStorage, tasks)
+    const result = saveTasksToBrowser(tasks)
     if (!result.success) {
       queueMicrotask(() => setSaveError(result.error))
     } else {
@@ -146,19 +147,25 @@ function App() {
       return
     }
 
-    const result = saveTasks(localStorage, tasks)
+    const result = saveTasksToBrowser(tasks)
     if (result.success) {
       setTemporaryMode(false)
+      setPendingReplacement(false)
       setSaveError(null)
     } else {
+      setPendingReplacement(true)
       setSaveError(result.error)
     }
   }
 
   function handleRetrySave() {
-    const result = saveTasks(localStorage, tasks)
+    const result = saveTasksToBrowser(tasks)
     if (result.success) {
       setSaveError(null)
+      if (pendingReplacement) {
+        setTemporaryMode(false)
+      }
+      setPendingReplacement(false)
     } else {
       setSaveError(result.error)
     }
@@ -224,7 +231,9 @@ function App() {
             className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
           >
             <p className="mb-2">
-              Changes could not be saved: {saveError}. Your changes are still in memory but may be lost on refresh.
+              {pendingReplacement
+                ? `Replacing the saved data failed: ${saveError}. Retry saving to replace the saved data with the current ${tasks.length} task(s) and resume automatic saving.`
+                : `Changes could not be saved: ${saveError}. Your changes are still in memory but may be lost on refresh.`}
             </p>
             <button
               type="button"

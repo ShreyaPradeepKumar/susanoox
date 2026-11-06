@@ -64,13 +64,81 @@ export function parseAndValidateTasks(jsonText) {
   return validateTaskList(parsed);
 }
 
+export function getBrowserStorage() {
+  try {
+    const storage = globalThis.localStorage;
+
+    if (!storage) {
+      return { storage: null, error: 'Browser storage is not available.' };
+    }
+
+    return { storage, error: null };
+  } catch (error) {
+    return {
+      storage: null,
+      error: error?.message || 'Browser storage access is blocked.',
+    };
+  }
+}
+
+export function loadTasksFromBrowser(getStorage = getBrowserStorage) {
+  let access;
+
+  try {
+    access = getStorage();
+  } catch (error) {
+    return {
+      status: 'unreadable',
+      error: error?.message || 'Browser storage access is blocked.',
+    };
+  }
+
+  if (!access?.storage) {
+    return {
+      status: 'unreadable',
+      error: access?.error || 'Browser storage is not available.',
+    };
+  }
+
+  return loadTasks(access.storage);
+}
+
+export function saveTasksToBrowser(tasks, getStorage = getBrowserStorage) {
+  let access;
+
+  try {
+    access = getStorage();
+  } catch (error) {
+    return {
+      success: false,
+      error: error?.message || 'Browser storage access is blocked.',
+    };
+  }
+
+  if (!access?.storage) {
+    return {
+      success: false,
+      error: access?.error || 'Browser storage is not available.',
+    };
+  }
+
+  return saveTasks(access.storage, tasks);
+}
+
 export function loadTasks(storage) {
   let raw;
 
   try {
+    if (!storage || typeof storage.getItem !== 'function') {
+      throw new Error('Browser storage is not available.');
+    }
+
     raw = storage.getItem(STORAGE_KEY);
   } catch (error) {
-    return { status: 'unreadable', error: error.message };
+    return {
+      status: 'unreadable',
+      error: error?.message || 'Browser storage is not available.',
+    };
   }
 
   if (raw === null) {
@@ -87,12 +155,17 @@ export function loadTasks(storage) {
 }
 
 export function saveTasks(storage, tasks) {
-  const json = JSON.stringify(tasks);
-
   try {
-    storage.setItem(STORAGE_KEY, json);
+    if (!storage || typeof storage.setItem !== 'function') {
+      throw new Error('Browser storage is not available.');
+    }
+
+    storage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     return { success: true };
   } catch (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error?.message || 'Browser storage is not available.',
+    };
   }
 }
