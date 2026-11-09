@@ -4,6 +4,8 @@ A task tracker built with React, JavaScript, and Tailwind CSS. Add tasks, assign
 
 In Task 03, browser persistence via `localStorage` was added: saved tasks, completion status, priorities, and original list order survive page refreshes and browser restarts within the same browser profile.
 
+Task 04 adds optional sample-task loading from JSONPlaceholder. Clicking **Load sample tasks** fetches five sample records, validates and converts them, and shows them in a preview. The user selects tasks and imports only those tasks; existing tasks are never replaced.
+
 ## Running it
 
 ```bash
@@ -37,12 +39,16 @@ Then open http://localhost:5173/susanoox/ in your browser.
 | State | Purpose | Persisted? |
 | --- | --- | --- |
 | `tasks` | Canonical array of task records (source of truth) | Yes (`localStorage`) |
-| `temporaryMode` | Boolean flag set when stored data is invalid or unreadable | No (computed on startup) |
+| `temporaryMode` | Boolean flag set when stored data is invalid or unreadable, cleared after a successful confirmed replacement | No (startup and recovery state) |
 | `saveError` | Error message string when writing to storage fails, else `null` | No (runtime state) |
+| `pendingReplacement` | Records that a confirmed replacement failed and Retry must complete it | No (runtime state) |
 | `title`, `priority` | Add-task form input and priority selection (defaults to `medium`) | No |
 | `error` | Validation error message for the add-task form | No |
 | `editingId`, `draftTitle`, `draftPriority`, `editError` | In-place editor state and validation draft | No |
 | `search`, `filter`, `priorityFilter`, `sort` | Active view filters and sort order | No (defaults on startup) |
+| `previewTasks`, `hasPreview` | Last successfully loaded sample-task preview | No |
+| `selectedPreviewIds` | Preview task IDs selected for import | No |
+| `isPreviewLoading`, `previewError`, `importMessage` | Request state, friendly request error, and import result message | No |
 
 Data flows downward through props and upward through event callbacks. View controls (search, filter, priority filter, sort) do **not** mutate or create copies of the stored tasks; they derive visible tasks dynamically on each render.
 
@@ -86,6 +92,29 @@ All persistence logic is encapsulated in `src/storage.js`:
 - **Saving Operations**:
   - `saveTasks(storage, tasks)`: Serializes tasks to JSON and writes to `STORAGE_KEY`. Reports `{ success: true }` or `{ success: false, error }`. Only accesses `STORAGE_KEY`.
 
+### Sample Task API (`src/taskApi.js`)
+
+- **Endpoint**: `https://jsonplaceholder.typicode.com/todos?_limit=5`
+- **Request**: One `GET` request with `Accept: application/json`, made only when the user clicks **Load sample tasks** or **Retry**. There is no automatic fetch, polling, or automatic retry.
+- **Response validation**: The top level must be an array. Every record must be a non-null object, not an array, with:
+  - a unique positive safe-integer `id`,
+  - a positive safe-integer `userId`,
+  - a non-blank string `title`,
+  - a strict boolean `completed`.
+  - Any invalid record rejects the whole response. An empty array is valid.
+- **Conversion**: Each accepted record becomes `{ id: 'jsonplaceholder-todo-<id>', title: <trimmed title>, completed: <completed>, priority: 'medium' }`. The `userId` and extra fields are not copied.
+- **Failure messages**: Network failures, non-success HTTP statuses, unreadable JSON, and unexpected response structure are reported separately with friendly messages. Failed loads leave the task list and stored data unchanged.
+
+### Import Behaviour
+
+- The preview is separate from `tasks`. Loading replaces only the preview.
+- Already imported tasks are detected by their stable `jsonplaceholder-todo-<id>` IDs. Their checkboxes are disabled and labelled **Already imported**.
+- **Import selected tasks** appends only selected, not-already-imported records in preview order. Existing task order and values are unchanged, and the preview remains visible.
+- After import, the selection clears, imported checkboxes remain disabled, and a status message reports how many tasks were imported.
+- Imported tasks use the same canonical `tasks` state and `localStorage` persistence as manually added tasks.
+- In temporary storage mode, import is allowed in memory but automatic saving stays suspended until the user replaces the stored data.
+- Loading, retrying, selecting, and importing are disabled while an edit is open. A request may finish and populate the preview during editing, but import remains disabled until the edit ends.
+
 ## Storage Behavior and Recovery
 
 1. **First Visit**: When no saved data exists, the application loads four initial sample tasks and persists them to `localStorage`.
@@ -115,8 +144,8 @@ npm test
 ```
 
 The tests run in two layers:
-- `tests/tasks.test.js` and `tests/storage.test.js` use Node's built-in test runner (`node --test`) for pure logic, validation, and storage helper behaviour.
-- `tests/ui/app-recovery.test.jsx` uses Vitest with jsdom and React Testing Library to exercise the real interface for the add-form reset, edit-control locking, blocked storage access, and the full replacement-retry recovery sequence.
+- `tests/tasks.test.js`, `tests/storage.test.js`, and `tests/taskApi.test.js` use Node's built-in test runner (`node --test`) for pure logic, validation, storage helpers, and sample-response validation/conversion.
+- `tests/ui/app-recovery.test.jsx` and `tests/ui/task-import.test.jsx` use Vitest with jsdom and React Testing Library to exercise the real interface for form resets, edit-control locking, storage recovery, sample loading, selection, import, duplicate handling, request errors, retry, empty responses, and temporary-mode integration.
 
 `npm test` runs both layers. Use `npm run test:unit` or `npm run test:ui` to run one layer on its own.
 
@@ -130,15 +159,18 @@ task-tracker/
 ├── tests/
 │   ├── tasks.test.js     task function assertions & regressions
 │   ├── storage.test.js   storage validation & serialization assertions
+│   ├── taskApi.test.js   sample-response validation & request assertions
 │   └── ui/
 │       ├── setup.js                    Testing Library cleanup
-│       └── app-recovery.test.jsx       interface and recovery regressions
+│       ├── app-recovery.test.jsx       interface and recovery regressions
+│       └── task-import.test.jsx        sample loading, selection, and import tests
 └── src/
     ├── main.jsx          application entry point
     ├── index.css         Tailwind styles import
     ├── priority.js       shared priority values, default, and validator
     ├── tasks.js          pure task management functions
     ├── storage.js        localStorage contract, validators, load and save helpers
+    ├── taskApi.js        JSONPlaceholder request, validation, and conversion
     ├── App.jsx           React state, effects, storage integration, and layout
     └── components/
         ├── TaskInput.jsx        add-task title input, priority select, button
@@ -146,6 +178,7 @@ task-tracker/
         ├── FilterButtons.jsx    status filter buttons (All / Pending / Completed)
         ├── PriorityFilter.jsx   priority filter buttons (All / Low / Medium / High)
         ├── SortSelect.jsx       order selector (Original / Priority: High to Low)
+        ├── TaskImport.jsx       sample-task load, preview, selection, and import
         ├── TaskList.jsx         list container or empty state notification
         ├── TaskItem.jsx         row display, responsive wrapping, Edit & Delete buttons
         ├── TaskEditor.jsx       inline edit form with title and priority controls
