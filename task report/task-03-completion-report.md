@@ -1,5 +1,7 @@
 # Task 03 Completion Report — Save and Restore Tasks
 
+> **Historical note (9 November 2026):** This original Task 03 report is preserved as submitted. Some claims below were later found inaccurate — especially the A1/A2 test level, the two failing storage-recovery browser scenarios, the cache-clearing statement, and the vague tested-commit reference. See **“Task 04 Part A review corrections (9 November 2026)”** at the end. That section supersedes those specific claims.
+
 ## 1. What Was Completed
 
 ### Part A: Task 02 Review Corrections
@@ -310,3 +312,91 @@ Commands executed in `task_1/task-tracker`:
 - **GitHub Repository**: [https://github.com/ShreyaPradeepKumar/susanoox](https://github.com/ShreyaPradeepKumar/susanoox)
 - **Tested Commit**: `dde7153` (and latest Task 03 completion commit)
 - **Deployed Application**: [https://ShreyaPradeepKumar.github.io/susanoox/](https://ShreyaPradeepKumar.github.io/susanoox/)
+
+---
+
+# Task 04 Part A review corrections (9 November 2026)
+
+This section records the corrections made after the review of commit `b7d5427361a01a9f2c980363f01a64e801c838ee`. The original report above is kept as historical context; the statements below supersede specific claims about A1/A2 testing, browser coverage, cache clearing, and the tested commit.
+
+## A1 — Blocked access to the storage object
+
+- Earlier, only `getItem()` errors were caught. Reading `window.localStorage` itself could throw before the helper ran.
+- `src/storage.js` now contains `getBrowserStorage`, `loadTasksFromBrowser`, and `saveTasksToBrowser`. They guard:
+  - obtaining the storage object,
+  - reading with `getItem`,
+  - writing with `setItem`.
+- `src/App.jsx` uses these protected helpers for startup, automatic saving, confirmed replacement, and retry.
+- If storage access is denied, the app now renders with an empty temporary list and the temporary-mode warning instead of a blank page. Existing stored data is not overwritten while automatic saving is suspended.
+
+## A2 — Resume automatic saving after a replacement retry
+
+- Earlier, a successful Retry after a failed replacement saved once but left temporary mode active. Later changes were not automatically saved.
+- `src/App.jsx` now tracks `pendingReplacement`. A confirmed replacement that fails records that state. If Retry succeeds, the app saves the latest full task list, clears the storage warning, exits temporary mode, and resumes automatic saving.
+- An ordinary failed save remains an ordinary failed-save retry and does not acquire permission to replace unreadable data.
+- The warning explains when Retry will complete a previously confirmed replacement.
+
+## A3 — Shared priority validation
+
+- The duplicate priority rules in `src/tasks.js` and `src/storage.js` were replaced by one module, `src/priority.js`.
+- It exports `PRIORITY_VALUES` (`low`, `medium`, `high`), `DEFAULT_PRIORITY` (`medium`), and `isValidPriority`.
+- Both task mutations and stored-data validation import the same rule. The Medium default for omitted mutation arguments is preserved, and saved records still require an explicit valid priority.
+- A test asserts that the task and storage modules use the same validator reference.
+
+## A4 — Tests and reports now match their evidence
+
+- The original tests named as A1/A2 regressions were helper-level only. They have been renamed to say so explicitly.
+- New interface tests in `tests/ui/app-recovery.test.jsx` use Vitest, jsdom, and React Testing Library to verify the actual interface:
+  - add-form title/priority reset,
+  - disabled search, status filters, priority filters, sort, and clear-filters control during editing,
+  - `localStorage` getter throwing,
+  - `getItem` throwing,
+  - `setItem` throwing,
+  - the complete confirmed-replacement → failed-write → successful-retry → later-auto-save → refresh sequence,
+  - cancellation, repeated retry failure, empty-list replacement, and unrelated-key preservation.
+- `npm test` now runs both the Node logic tests and the jsdom interface tests. `npm run test:unit` and `npm run test:ui` run each layer separately.
+- Documentation correction: clearing site data for this origin removes `localStorage`; clearing only cached files does not necessarily remove it. The original limitation text above incorrectly grouped cache clearing with site-data clearing.
+
+## Tested code commit
+
+- **Baseline reviewed commit:** `b7d5427361a01a9f2c980363f01a64e801c838ee`
+- **Part A correction code/test commit:** `e08ca59bd2ff5682db02e4fee04869a1339de5df`
+- The correction commit contains the A1/A2/A3 code, the interface-test setup, the interface regressions, and the corrected test labels. The report and README corrections are in a later documentation commit.
+
+## Actual commands and results at `e08ca59`
+
+Run in `task_1/task-tracker`:
+
+1. `npm test`
+   - Node logic layer: 94 tests passed, 0 failed.
+   - Vitest interface layer: 9 tests passed in 1 file, 0 failed.
+   - Combined exit code: `0`.
+2. `npm run lint`
+   - `oxlint`: exit code `0`, no warnings or errors.
+3. `npm run build`
+   - `vite build`: exit code `0`.
+4. `npm run demo`
+   - `node demo.js`: exit code `0`; printed expected outputs.
+
+## Browser evidence
+
+- Browser: Google Chrome `156.0.8078.81` (headless, driven by a temporary Playwright-core script).
+- Development URL: `http://127.0.0.1:5173/susanoox/`.
+- Viewports checked: `320×800`, `375×800`, and `1280×800`.
+- Results:
+  - add form reset and edit-control locking: pass,
+  - no horizontal overflow at 320/375/1280: pass,
+  - `window.localStorage` getter throws: app stays usable in temporary mode: pass,
+  - `getItem` throws: temporary mode and warning: pass,
+  - `setItem` throws: memory changes remain, warning appears, stored data unchanged: pass,
+  - confirmed replacement fails → Retry succeeds → later task auto-saves → refresh restores both tasks: pass,
+  - no page errors were observed.
+- These failure cases were simulated in an isolated browser context, not caused by a live service failure.
+
+## Still failed or not tested at this stage
+
+- The two storage-recovery scenarios that failed in the reviewed version now pass in both interface and browser checks.
+- The deployed application was not verified for this correction commit at this stage. Deployment verification is recorded in the Task 04 report after the final deployment.
+- Firefox, Safari, Edge, and physical mobile devices were not tested.
+- Multi-tab coordination remains unsupported and was not tested.
+

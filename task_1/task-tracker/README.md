@@ -20,7 +20,9 @@ Then open http://localhost:5173/susanoox/ in your browser.
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Start the local Vite development server |
-| `npm test` | Run test suites in `tests/tasks.test.js` and `tests/storage.test.js` |
+| `npm test` | Run both the Node logic tests and the jsdom interface tests |
+| `npm run test:unit` | Run the Node logic tests (`node --test`) only |
+| `npm run test:ui` | Run the jsdom interface tests (`vitest run`) only |
 | `npm run demo` | Print a demonstration run-through of the nine task functions |
 | `npm run build` | Create an optimized production build in `dist/` |
 | `npm run preview` | Preview the local production build |
@@ -102,7 +104,7 @@ All persistence logic is encapsulated in `src/storage.js`:
 - **Browser Profile and Origin Isolation**: Saved tasks are tied to the specific browser profile and site origin (`protocol + domain + port`). Tasks saved on GitHub Pages are not shared with the local Vite development site (`localhost`), another browser, another browser profile, or another device.
 - **No Cloud Synchronization**: There is no backend database or cloud account synchronization.
 - **Multiple Tabs**: Simultaneous edits in multiple open tabs are not coordinated and can overwrite each other's stored data on subsequent saves.
-- **Private Browsing and Clearing Data**: Private/Incognito windows may clear `localStorage` when the session is closed. Manually clearing site data or browser cache also erases stored tasks.
+- **Private Browsing and Clearing Data**: Private/Incognito windows may clear `localStorage` when the session is closed. Clearing site data for this origin (which includes `localStorage`) removes saved tasks. Clearing only cached files does not necessarily remove `localStorage`.
 
 ## The Checks
 
@@ -112,9 +114,11 @@ Run the automated test suites:
 npm test
 ```
 
-The tests run on Node's built-in test runner (`node --test`) without external testing dependencies:
-- `tests/tasks.test.js`: Covers task CRUD logic, filtering, search, sorting, counts, immutability, priority validation, form reset regression (A1), and edit lock regression (A2).
-- `tests/storage.test.js`: Covers storage key constant, JSON round trips, task and list schema validation, invalid priorities/prototype keys, corrupted JSON, missing vs. empty array handling, simulated read/write failures, and isolation from other storage keys.
+The tests run in two layers:
+- `tests/tasks.test.js` and `tests/storage.test.js` use Node's built-in test runner (`node --test`) for pure logic, validation, and storage helper behaviour.
+- `tests/ui/app-recovery.test.jsx` uses Vitest with jsdom and React Testing Library to exercise the real interface for the add-form reset, edit-control locking, blocked storage access, and the full replacement-retry recovery sequence.
+
+`npm test` runs both layers. Use `npm run test:unit` or `npm run test:ui` to run one layer on its own.
 
 ## Project Structure
 
@@ -125,10 +129,14 @@ task-tracker/
 ├── demo.js               run-through of task functions (npm run demo)
 ├── tests/
 │   ├── tasks.test.js     task function assertions & regressions
-│   └── storage.test.js   storage validation & serialization assertions
+│   ├── storage.test.js   storage validation & serialization assertions
+│   └── ui/
+│       ├── setup.js                    Testing Library cleanup
+│       └── app-recovery.test.jsx       interface and recovery regressions
 └── src/
     ├── main.jsx          application entry point
     ├── index.css         Tailwind styles import
+    ├── priority.js       shared priority values, default, and validator
     ├── tasks.js          pure task management functions
     ├── storage.js        localStorage contract, validators, load and save helpers
     ├── App.jsx           React state, effects, storage integration, and layout
