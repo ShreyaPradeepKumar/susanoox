@@ -125,7 +125,19 @@ Browser script: `C:\Users\shrey\AppData\Local\Temp\opencode\pwcheck\check-b.cjs`
 
 ### Deployment verification
 
-Deployment verification is performed after the final documentation push. The deployed URL is [https://ShreyaPradeepKumar.github.io/susanoox/](https://ShreyaPradeepKumar.github.io/susanoox/).
+- Final documentation commit pushed to `main`: `4cf783e`.
+- GitHub Pages served the new production bundle `index-qln0iyPm.js` after deployment.
+- The same full browser script was run against [https://ShreyaPradeepKumar.github.io/susanoox/](https://ShreyaPradeepKumar.github.io/susanoox/) with Chrome `156.0.8078.81`.
+- Deployed results, all passed:
+  - live sample request count: `0` before click, `1` after click,
+  - live load, reverse-order selection, preview-order import, duplicate handling, and persistence after refresh,
+  - search/sort preservation and active filter behaviour,
+  - network error and Retry,
+  - disabled loading state and valid empty response,
+  - invalid response handling,
+  - edit lock and temporary-mode replacement integration,
+  - no horizontal overflow at 320px, 375px, or 1280px,
+  - no page errors.
 
 ## Requirement matrix
 
@@ -169,4 +181,4 @@ Deployment verification is performed after the final documentation push. The dep
 - The JSONPlaceholder service is an external dependency. A live outage shows the friendly error state, but sample import cannot succeed while the service is unavailable.
 - Multi-tab coordination remains unsupported.
 - Imported tasks always use Medium priority because the API has no priority field; the user can edit them afterwards.
-- The deployed build must be re-checked after GitHub Pages finishes publishing the final push.
+- The deployed build was checked after the final implementation and documentation push.
