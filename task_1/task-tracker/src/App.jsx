@@ -4,8 +4,10 @@ import PriorityFilter from './components/PriorityFilter.jsx'
 import SearchInput from './components/SearchInput.jsx'
 import SortSelect from './components/SortSelect.jsx'
 import TaskInput from './components/TaskInput.jsx'
+import TaskImport from './components/TaskImport.jsx'
 import TaskList from './components/TaskList.jsx'
 import TaskSummary from './components/TaskSummary.jsx'
+import { requestSampleTasks } from './taskApi.js'
 import { loadTasksFromBrowser, saveTasksToBrowser } from './storage.js'
 import {
   addTask,
@@ -49,6 +51,12 @@ function App({
   const [temporaryMode, setTemporaryMode] = useState(initialStorage.temporaryMode)
   const [saveError, setSaveError] = useState(null)
   const [pendingReplacement, setPendingReplacement] = useState(false)
+  const [previewTasks, setPreviewTasks] = useState([])
+  const [hasPreview, setHasPreview] = useState(false)
+  const [selectedPreviewIds, setSelectedPreviewIds] = useState([])
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState(null)
+  const [importMessage, setImportMessage] = useState('')
 
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('medium')
@@ -63,6 +71,8 @@ function App({
   const [editError, setEditError] = useState('')
   const closedEditId = useRef(null)
   const isFirstMount = useRef(true)
+  const previewRequestInFlight = useRef(false)
+  const importLock = useRef(false)
 
   const counts = getCounts(tasks)
   const isEditing = editingId !== null
@@ -74,6 +84,13 @@ function App({
   const priorityFiltered = filterByPriority(statusFiltered, priorityFilter)
   const searched = searchTasks(priorityFiltered, search)
   const visibleTasks = sortTasks(searched, sort)
+
+  const existingTaskIds = new Set(tasks.map((task) => task.id))
+  const selectedEligibleCount = previewTasks.filter(
+    (task) =>
+      selectedPreviewIds.includes(task.id) && !existingTaskIds.has(task.id)
+  ).length
+  const canImport = !isEditing && !isPreviewLoading && selectedEligibleCount > 0
 
   useEffect(() => {
     if (editingId === null && closedEditId.current) {
@@ -205,6 +222,78 @@ function App({
     setEditError('')
   }
 
+  async function handleLoadSampleTasks() {
+    if (isEditing || previewRequestInFlight.current) {
+      return
+    }
+
+    previewRequestInFlight.current = true
+    setIsPreviewLoading(true)
+    setPreviewError(null)
+    setImportMessage('')
+    setPreviewTasks([])
+    setSelectedPreviewIds([])
+    setHasPreview(false)
+
+    try {
+      const result = await requestSampleTasks()
+
+      if (result.ok) {
+        setPreviewTasks(result.tasks)
+        setHasPreview(true)
+      } else {
+        setPreviewError(result.message)
+      }
+    } catch {
+      setPreviewError(
+        'The sample task service could not be reached. Check your connection and try again.'
+      )
+    } finally {
+      previewRequestInFlight.current = false
+      setIsPreviewLoading(false)
+    }
+  }
+
+  function handleTogglePreview(id) {
+    if (isEditing || isPreviewLoading || existingTaskIds.has(id)) {
+      return
+    }
+
+    setSelectedPreviewIds((current) =>
+      current.includes(id)
+        ? current.filter((taskId) => taskId !== id)
+        : [...current, id]
+    )
+  }
+
+  function handleImportSelected() {
+    if (isEditing || isPreviewLoading || importLock.current) {
+      return
+    }
+
+    importLock.current = true
+    queueMicrotask(() => {
+      importLock.current = false
+    })
+
+    const toAppend = previewTasks.filter(
+      (task) =>
+        selectedPreviewIds.includes(task.id) && !existingTaskIds.has(task.id)
+    )
+
+    setSelectedPreviewIds([])
+
+    if (toAppend.length === 0) {
+      setImportMessage('No selected sample tasks were eligible to import.')
+      return
+    }
+
+    setTasks([...tasks, ...toAppend])
+    setImportMessage(
+      `Imported ${toAppend.length} task${toAppend.length === 1 ? '' : 's'}.`
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 p-4">
       <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-5">
@@ -317,6 +406,21 @@ function App({
           pending={counts.pending}
           completed={counts.completed}
           showing={visibleTasks.length}
+        />
+        <TaskImport
+          previewTasks={previewTasks}
+          hasPreview={hasPreview}
+          selectedIds={selectedPreviewIds}
+          existingIds={existingTaskIds}
+          isLoading={isPreviewLoading}
+          error={previewError}
+          resultMessage={importMessage}
+          isEditing={isEditing}
+          selectedEligibleCount={selectedEligibleCount}
+          canImport={canImport}
+          onLoad={handleLoadSampleTasks}
+          onToggleSelect={handleTogglePreview}
+          onImport={handleImportSelected}
         />
         <p className="mt-4 text-center text-xs text-slate-500">
           Tasks are saved in this browser, not to an account or cloud service.
