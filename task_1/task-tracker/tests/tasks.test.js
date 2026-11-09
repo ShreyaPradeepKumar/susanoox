@@ -284,11 +284,11 @@ describe('using them together', () => {
   })
 })
 
-describe('regression: A1 — form reset after a successful add', () => {
+describe('helper-level regression: addTask return value supports A1 form reset', () => {
   it('returns a new array so the caller can reset the form', () => {
     const result = addTask(sampleTasks, 'Water the plants', 'high')
 
-    // A new array means the add succeeded — the caller resets title and priority
+    // Helper-level check only. The real form reset is covered in tests/ui.
     assert.notStrictEqual(result, sampleTasks)
     assert.equal(result.at(-1).priority, 'high')
     assert.equal(result.at(-1).title, 'Water the plants')
@@ -301,10 +301,9 @@ describe('regression: A1 — form reset after a successful add', () => {
   })
 })
 
-describe('regression: A2 — edit lock covers all view controls', () => {
+describe('helper-level regression: view-control helpers preserve A2 edit locking', () => {
   it('search, filter, priority filter and sort are all independent — none alters the task list', () => {
-    // If these functions return unmodified task data, the UI can safely disable them
-    // during editing without losing any task information
+    // Helper-level check only. The real disabled controls are covered in tests/ui.
     const searched = searchTasks(sampleTasks, 'react')
     const filtered = filterTasks(sampleTasks, 'pending')
     const byPriority = filterByPriority(sampleTasks, 'high')

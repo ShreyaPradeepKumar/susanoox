@@ -26,8 +26,8 @@ const startingTasks = [
   { id: 't4', title: 'Learn React basics', completed: true, priority: 'low' },
 ]
 
-function getInitialStorageState() {
-  const result = loadTasksFromBrowser()
+function getInitialStorageState(loadStorage) {
+  const result = loadStorage()
   return {
     status: result.status,
     tasks:
@@ -40,8 +40,11 @@ function getInitialStorageState() {
   }
 }
 
-function App() {
-  const [initialStorage] = useState(getInitialStorageState)
+function App({
+  loadStorage = loadTasksFromBrowser,
+  saveStorage = saveTasksToBrowser,
+} = {}) {
+  const [initialStorage] = useState(() => getInitialStorageState(loadStorage))
   const [tasks, setTasks] = useState(initialStorage.tasks)
   const [temporaryMode, setTemporaryMode] = useState(initialStorage.temporaryMode)
   const [saveError, setSaveError] = useState(null)
@@ -90,7 +93,7 @@ function App() {
     if (isFirstMount.current) {
       isFirstMount.current = false
       if (initialStorage.status === 'missing') {
-        const result = saveTasksToBrowser(tasks)
+        const result = saveStorage(tasks)
         if (!result.success) {
           queueMicrotask(() => setSaveError(result.error))
         }
@@ -100,13 +103,13 @@ function App() {
 
     if (temporaryMode) return
 
-    const result = saveTasksToBrowser(tasks)
+    const result = saveStorage(tasks)
     if (!result.success) {
       queueMicrotask(() => setSaveError(result.error))
     } else {
       queueMicrotask(() => setSaveError(null))
     }
-  }, [tasks, temporaryMode, initialStorage.status])
+  }, [tasks, temporaryMode, initialStorage.status, saveStorage])
 
   function handleAdd(event) {
     event.preventDefault()
@@ -147,7 +150,7 @@ function App() {
       return
     }
 
-    const result = saveTasksToBrowser(tasks)
+    const result = saveStorage(tasks)
     if (result.success) {
       setTemporaryMode(false)
       setPendingReplacement(false)
@@ -159,7 +162,7 @@ function App() {
   }
 
   function handleRetrySave() {
-    const result = saveTasksToBrowser(tasks)
+    const result = saveStorage(tasks)
     if (result.success) {
       setSaveError(null)
       if (pendingReplacement) {

@@ -6,4 +6,10 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: '/susanoox/',
   plugins: [react(), tailwindcss()],
+  test: {
+    environment: 'jsdom',
+    include: ['tests/ui/**/*.test.jsx'],
+    setupFiles: ['./tests/ui/setup.js'],
+    restoreMocks: true,
+  },
 })
