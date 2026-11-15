@@ -183,8 +183,6 @@ Browser script: `C:\Users\shrey\AppData\Local\Temp\opencode\pwcheck\check-b.cjs`
 - Imported tasks always use Medium priority because the API has no priority field; the user can edit them afterwards.
 - The deployed build was checked after the final implementation and documentation push.
 
-## Learning and assistance reflection (15 November 2026)
-
 - **Concept I can now demonstrate:** a polite live region only announces a meaningful change while it is mounted. Clearing the region when loading finishes does not announce the finished state, even though the visible page has changed.
 - **What I am still practising:** restoring focus when the focused control disappears, choosing a predictable destination, and checking the next Tab stop rather than only checking that the result appeared.
 - **How I checked suggestions:** I ran the keyboard path in Chrome against controlled HTTP 500 → 200 responses and inspected the live-region text, `document.activeElement`, and the next Tab stop. I did not accept an AI or documentation suggestion as correct until it matched that browser behaviour. I did not use a screen reader; this was a DOM and keyboard check, not a spoken-announcement check.
