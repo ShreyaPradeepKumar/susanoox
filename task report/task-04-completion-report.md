@@ -182,3 +182,34 @@ Browser script: `C:\Users\shrey\AppData\Local\Temp\opencode\pwcheck\check-b.cjs`
 - Multi-tab coordination remains unsupported.
 - Imported tasks always use Medium priority because the API has no priority field; the user can edit them afterwards.
 - The deployed build was checked after the final implementation and documentation push.
+
+## Task 04 review corrections and learning (15 November 2026)
+
+### A1 review evidence at `e9299c4`
+
+This check records the baseline before the Task 05 review correction. It does not claim that A1 is fixed.
+
+- **Tested commit:** `e9299c49e8278e77f48c37fbbd99201f86de1c14`
+- **Browser:** Google Chrome `157.0.8103.39`, headless, driven by `playwright-core`
+- **URL:** `http://127.0.0.1:5173/susanoox/`
+- **Controlled responses:** first `GET` returned HTTP 500; Retry then returned either two valid sample tasks or `[]`
+- **Keyboard path:** focus **Load sample tasks**, press Enter, press Tab to focus **Retry**, press Enter, then inspect `document.activeElement` and the next Tab stop.
+
+| Retry result | Focused before Retry | `role="status"` text after Retry | Active element after Retry | Next Tab stop |
+| --- | --- | --- | --- | --- |
+| Two sample tasks | Retry button | Empty string | `BODY` | First preview checkbox |
+| `[]` | Retry button | Empty string | `BODY` | `BODY` |
+
+The observed behaviour is the reported defect:
+
+- The polite status region is present but loses its message when loading ends. It does not announce “2 sample tasks ready to preview” or “No sample tasks available.”
+- Activating keyboard-focused Retry removes that button, and focus falls to the page body.
+- With a populated result, the next Tab goes to the first preview checkbox instead of a predictable import-section control. With an empty result, the next Tab remains on the page body.
+
+The required A1 correction is to keep a meaningful message in the mounted status region and move focus to **Load sample tasks** when the focused Retry button disappears. It must handle both populated and empty results and leave focus alone if the user has moved it elsewhere. This section must be updated with passing keyboard evidence after the correction commit.
+
+### Learning and assistance
+
+- **Concept I can now demonstrate:** a polite live region only announces a meaningful change while it is mounted. Clearing the region when loading finishes does not announce the finished state, even though the visible page has changed.
+- **What I am still practising:** restoring focus when the focused control disappears, choosing a predictable destination, and checking the next Tab stop rather than only checking that the result appeared.
+- **How I checked suggestions:** I ran the keyboard path in Chrome against controlled HTTP 500 → 200 responses and inspected the live-region text, `document.activeElement`, and the next Tab stop. I did not accept an AI or documentation suggestion as correct until it matched that browser behaviour. I did not use a screen reader for this check; the evidence above is a DOM and keyboard check, not a spoken-announcement check.
