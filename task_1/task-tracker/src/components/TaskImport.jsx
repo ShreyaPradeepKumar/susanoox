@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+
 function TaskImport({
   previewTasks,
   hasPreview,
@@ -5,6 +7,7 @@ function TaskImport({
   existingIds,
   isLoading,
   error,
+  statusMessage,
   resultMessage,
   isEditing,
   selectedEligibleCount,
@@ -13,7 +16,34 @@ function TaskImport({
   onToggleSelect,
   onImport,
 }) {
+  const loadButtonRef = useRef(null)
+  const retryButtonRef = useRef(null)
+  const restoreFocusAfterRetry = useRef(false)
   const loadDisabled = isLoading || isEditing
+
+  function handleLoadClick() {
+    restoreFocusAfterRetry.current = false
+    onLoad()
+  }
+
+  function handleRetryClick() {
+    restoreFocusAfterRetry.current =
+      document.activeElement === retryButtonRef.current
+    onLoad()
+  }
+
+  useEffect(() => {
+    if (!restoreFocusAfterRetry.current || error || isLoading || loadDisabled) {
+      return
+    }
+
+    restoreFocusAfterRetry.current = false
+    const activeElement = document.activeElement
+
+    if (!activeElement || activeElement === document.body) {
+      loadButtonRef.current?.focus()
+    }
+  }, [error, isLoading, loadDisabled])
 
   return (
     <section
@@ -31,8 +61,9 @@ function TaskImport({
 
       <div className="flex flex-wrap items-center gap-2">
         <button
+          ref={loadButtonRef}
           type="button"
-          onClick={onLoad}
+          onClick={handleLoadClick}
           disabled={loadDisabled}
           className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -52,6 +83,7 @@ function TaskImport({
         className="mt-2 text-sm text-slate-700"
       >
         {isLoading && <p>Loading sample tasks…</p>}
+        {!isLoading && statusMessage && <p>{statusMessage}</p>}
         {!isLoading && resultMessage && <p>{resultMessage}</p>}
       </div>
 
@@ -62,8 +94,9 @@ function TaskImport({
         >
           <p className="mb-2">{error}</p>
           <button
+            ref={retryButtonRef}
             type="button"
-            onClick={onLoad}
+            onClick={handleRetryClick}
             disabled={loadDisabled}
             className="rounded border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50"
           >

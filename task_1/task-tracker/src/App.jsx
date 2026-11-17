@@ -77,6 +77,11 @@ function App({
   const counts = getCounts(tasks)
   const isEditing = editingId !== null
   const anyTasks = tasks.length > 0
+  const previewStatusMessage = hasPreview
+    ? previewTasks.length === 0
+      ? 'No sample tasks available.'
+      : `${previewTasks.length} sample task${previewTasks.length === 1 ? '' : 's'} ready to preview.`
+    : ''
   const isFiltered =
     filter !== 'all' || priorityFilter !== 'all' || search.trim() !== ''
 
@@ -414,6 +419,7 @@ function App({
           existingIds={existingTaskIds}
           isLoading={isPreviewLoading}
           error={previewError}
+          statusMessage={previewStatusMessage}
           resultMessage={importMessage}
           isEditing={isEditing}
           selectedEligibleCount={selectedEligibleCount}

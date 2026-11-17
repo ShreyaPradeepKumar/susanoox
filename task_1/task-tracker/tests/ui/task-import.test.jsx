@@ -81,6 +81,10 @@ function importRegion() {
   return screen.getByRole('region', { name: 'Import sample tasks' })
 }
 
+function importStatus(section) {
+  return within(section).getByRole('status').textContent
+}
+
 function stubFetch(...implementations) {
   const fetchMock = vi.fn()
 
@@ -152,7 +156,8 @@ describe('Task 04 sample task loading', () => {
       resolveRequest(jsonResponse([]))
     })
 
-    expect(screen.getByText('No sample tasks available.')).toBeTruthy()
+    expect(screen.getAllByText('No sample tasks available.').length).toBeGreaterThan(0)
+    expect(importStatus(importRegion())).toContain('No sample tasks available.')
     expect(
       screen.queryByRole('button', { name: 'Import selected tasks' })
     ).toBeNull()
@@ -184,6 +189,114 @@ describe('Task 04 sample task loading', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('announces a meaningful status message when the preview is ready', async () => {
+    stubFetch(async () => jsonResponse(apiTodos))
+    const storage = createStorage('[]')
+
+    renderApp(storage)
+    fireEvent.click(screen.getByRole('button', { name: 'Load sample tasks' }))
+
+    const section = importRegion()
+    await within(section).findByLabelText(apiTodos[0].title)
+
+    expect(importStatus(section)).toContain('3 sample tasks ready to preview.')
+
+    fireEvent.click(within(section).getByLabelText(apiTodos[0].title))
+    fireEvent.click(
+      within(section).getByRole('button', { name: 'Import selected tasks' })
+    )
+
+    expect(importStatus(section)).toContain('3 sample tasks ready to preview.')
+    expect(importStatus(section)).toContain('Imported 1 task.')
+  })
+
+  it('moves focus from a removed Retry button back to Load for a populated result', async () => {
+    const fetchMock = stubFetch(
+      async () => {
+        throw new Error('offline')
+      },
+      async () => jsonResponse(apiTodos)
+    )
+    const storage = createStorage('[]')
+
+    renderApp(storage)
+    fireEvent.click(screen.getByRole('button', { name: 'Load sample tasks' }))
+
+    const alert = await screen.findByRole('alert')
+    const retry = within(alert).getByRole('button', { name: 'Retry' })
+    retry.focus()
+    expect(document.activeElement).toBe(retry)
+
+    fireEvent.click(retry)
+
+    const section = importRegion()
+    await within(section).findByLabelText(apiTodos[0].title)
+
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Load sample tasks' })
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('moves focus from a removed Retry button back to Load for an empty result', async () => {
+    stubFetch(
+      async () => {
+        throw new Error('offline')
+      },
+      async () => jsonResponse([])
+    )
+    const storage = createStorage('[]')
+
+    renderApp(storage)
+    fireEvent.click(screen.getByRole('button', { name: 'Load sample tasks' }))
+
+    const alert = await screen.findByRole('alert')
+    const retry = within(alert).getByRole('button', { name: 'Retry' })
+    retry.focus()
+    fireEvent.click(retry)
+
+    const section = importRegion()
+    await within(section).findAllByText('No sample tasks available.')
+
+    expect(importStatus(section)).toContain('No sample tasks available.')
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Load sample tasks' })
+    )
+  })
+
+  it('does not steal focus if the user moved it elsewhere during a retry', async () => {
+    let resolveRequest
+    stubFetch(
+      async () => {
+        throw new Error('offline')
+      },
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve
+        })
+    )
+    const storage = createStorage('[]')
+
+    renderApp(storage)
+    fireEvent.click(screen.getByRole('button', { name: 'Load sample tasks' }))
+
+    const alert = await screen.findByRole('alert')
+    const retry = within(alert).getByRole('button', { name: 'Retry' })
+    retry.focus()
+    fireEvent.click(retry)
+
+    const titleInput = screen.getByLabelText('Task title')
+    titleInput.focus()
+    expect(document.activeElement).toBe(titleInput)
+
+    await act(async () => {
+      resolveRequest(jsonResponse(apiTodos))
+    })
+
+    await within(importRegion()).findByLabelText(apiTodos[0].title)
+    expect(document.activeElement).toBe(titleInput)
   })
 })
 
