@@ -6,7 +6,11 @@ In Task 03, browser persistence via `localStorage` was added: saved tasks, compl
 
 Task 04 adds optional sample-task loading from JSONPlaceholder. Clicking **Load sample tasks** fetches five sample records, validates and converts them, and shows them in a preview. The user selects tasks and imports only those tasks; existing tasks are never replaced.
 
+Task 05 adds an opt-in local JSON Server mode for development. Running the app with `--mode mock` stores tasks through `GET`, `POST`, `PATCH`, and `DELETE` requests to `http://127.0.0.1:3001/tasks`. The normal development and deployed builds still use browser `localStorage`; no API service is required for them.
+
 ## Running it
+
+Normal browser/localStorage mode:
 
 ```bash
 npm install
@@ -15,13 +19,27 @@ npm run dev
 
 Then open http://localhost:5173/susanoox/ in your browser.
 
-(`npm install` only needs running once. To stop the dev server, press `Ctrl + C` in the terminal running it. The `/susanoox/` path comes from the `base` setting in `vite.config.js` — the app is deployed under that path on GitHub Pages.)
+Local JSON Server mode, from `task_1/task-tracker` in two terminals:
+
+```bash
+npm --prefix mock install
+npm --prefix mock run api
+```
+
+```bash
+npm run dev -- --mode mock
+```
+
+Then open http://127.0.0.1:5173/susanoox/ while the API runs on `http://127.0.0.1:3001/tasks`. The first API start copies `mock/db.seed.json` to the ignored `mock/db.json`; delete `mock/db.json` to reset the data. Press `Ctrl + C` in each terminal to stop either server. The `/susanoox/` path comes from the `base` setting in `vite.config.js` — the app is deployed under that path on GitHub Pages.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Start the local Vite development server |
+| `npm run dev -- --mode mock` | Start Vite with local JSON Server mode enabled |
+| `npm --prefix mock install` | Install the pinned JSON Server dependency |
+| `npm --prefix mock run api` | Seed if needed, then run JSON Server on port 3001 |
 | `npm test` | Run both the Node logic tests and the jsdom interface tests |
 | `npm run test:unit` | Run the Node logic tests (`node --test`) only |
 | `npm run test:ui` | Run the jsdom interface tests (`vitest run`) only |
@@ -49,8 +67,10 @@ Then open http://localhost:5173/susanoox/ in your browser.
 | `previewTasks`, `hasPreview` | Last successfully loaded sample-task preview | No |
 | `selectedPreviewIds` | Preview task IDs selected for import | No |
 | `isPreviewLoading`, `previewError`, `importMessage` | Request state, friendly request error, and import result message | No |
+| `apiStatus`, `apiError` | API load state, error message, and retry availability in mock mode | No |
+| `writeError`, `pendingWrite`, `writeMessage` | Write failure details, in-flight guard, and pending-status text in mock mode | No |
 
-Data flows downward through props and upward through event callbacks. View controls (search, filter, priority filter, sort) do **not** mutate or create copies of the stored tasks; they derive visible tasks dynamically on each render.
+Data flows downward through props and upward through event callbacks. View controls (search, filter, priority filter, sort) do **not** mutate or create copies of the stored tasks; they derive visible tasks dynamically on each render. In local API mode, add/toggle/edit/delete use the server response as the new source of truth; browser storage is not read or written.
 
 ### Task Logic (`src/tasks.js`)
 
@@ -105,6 +125,19 @@ All persistence logic is encapsulated in `src/storage.js`:
 - **Conversion**: Each accepted record becomes `{ id: 'jsonplaceholder-todo-<id>', title: <trimmed title>, completed: <completed>, priority: 'medium' }`. The `userId` and extra fields are not copied.
 - **Failure messages**: Network failures, non-success HTTP statuses, unreadable JSON, and unexpected response structure are reported separately with friendly messages. Failed loads leave the task list and stored data unchanged.
 
+### Local JSON Server API mode (`src/taskCrudApi.js`)
+
+- Enabled only when `import.meta.env.DEV && import.meta.env.MODE === 'mock'`. The normal dev server and the deployed build stay in browser/localStorage mode.
+- Endpoint: `http://127.0.0.1:3001/tasks`, provided by pinned `json-server@1.0.0-beta.15` from `mock/`.
+- `GET /tasks` runs once on mount and on **Retry loading**/**Reload tasks**. It validates the whole returned list; a stale response cannot overwrite a newer one.
+- `POST /tasks` adds a trimmed title, `completed: false`, and the chosen priority. The returned task, including the server-generated ID, becomes the new task.
+- `PATCH /tasks/:id` sends only allow-listed fields (`title`, `completed`, `priority`) with encoded IDs. Toggle and edit use the record returned by the server.
+- `DELETE /tasks/:id` removes the task only after a successful response.
+- Input and responses are validated before changing state. Network, HTTP, JSON-read, and schema errors are reported separately; failures never mutate the canonical list or drafts.
+- A network failure during a write is marked uncertain: **Retry this change** is hidden and **Reload tasks** is offered. Definite HTTP rejections can be retried without re-entering data.
+- While loading or writing, controls are disabled and a `role="status"` message shows `Loading tasks…`, `Saving new task…`, `Saving completion change…`, `Saving edit…`, or `Saving deletion…`.
+- Sample-task import is hidden in this mode. API mode uses neither `localStorage` nor JSONPlaceholder.
+
 ### Import Behaviour
 
 - The preview is separate from `tasks`. Loading replaces only the preview.
@@ -144,8 +177,8 @@ npm test
 ```
 
 The tests run in two layers:
-- `tests/tasks.test.js`, `tests/storage.test.js`, and `tests/taskApi.test.js` use Node's built-in test runner (`node --test`) for pure logic, validation, storage helpers, and sample-response validation/conversion.
-- `tests/ui/app-recovery.test.jsx` and `tests/ui/task-import.test.jsx` use Vitest with jsdom and React Testing Library to exercise the real interface for form resets, edit-control locking, storage recovery, sample loading, selection, import, duplicate handling, request errors, retry, empty responses, and temporary-mode integration.
+- `tests/tasks.test.js`, `tests/storage.test.js`, `tests/taskApi.test.js`, and `tests/taskCrudApi.test.js` use Node's built-in test runner (`node --test`) for pure logic, validation, storage helpers, sample-response validation/conversion, and local CRUD request/response contracts.
+- `tests/ui/app-recovery.test.jsx`, `tests/ui/task-import.test.jsx`, and `tests/ui/local-api.test.jsx` use Vitest with jsdom and React Testing Library to exercise form resets, edit-control locking, storage recovery, sample loading, selection, import, temporary-mode integration, API-mode startup, CRUD, pending states, HTTP/network failures, and retry/reload behaviour.
 
 `npm test` runs both layers. Use `npm run test:unit` or `npm run test:ui` to run one layer on its own.
 
@@ -156,14 +189,21 @@ task-tracker/
 ├── index.html            page shell with mount container
 ├── vite.config.js        registers React and Tailwind plugins, sets base path
 ├── demo.js               run-through of task functions (npm run demo)
+├── mock/                 pinned JSON Server for opt-in local API mode
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── db.seed.json
+│   └── db.json           ignored runtime copy, created on first start
 ├── tests/
-│   ├── tasks.test.js     task function assertions & regressions
-│   ├── storage.test.js   storage validation & serialization assertions
-│   ├── taskApi.test.js   sample-response validation & request assertions
+│   ├── tasks.test.js       task function assertions & regressions
+│   ├── storage.test.js     storage validation & serialization assertions
+│   ├── taskApi.test.js     sample-response validation & request assertions
+│   ├── taskCrudApi.test.js local CRUD request/response contract assertions
 │   └── ui/
 │       ├── setup.js                    Testing Library cleanup
 │       ├── app-recovery.test.jsx       interface and recovery regressions
-│       └── task-import.test.jsx        sample loading, selection, and import tests
+│       ├── task-import.test.jsx        sample loading, selection, and import tests
+│       └── local-api.test.jsx          API-mode startup, CRUD, and failure tests
 └── src/
     ├── main.jsx          application entry point
     ├── index.css         Tailwind styles import
@@ -171,6 +211,7 @@ task-tracker/
     ├── tasks.js          pure task management functions
     ├── storage.js        localStorage contract, validators, load and save helpers
     ├── taskApi.js        JSONPlaceholder request, validation, and conversion
+│   ├── taskCrudApi.js    local JSON Server GET/POST/PATCH/DELETE helpers
     ├── App.jsx           React state, effects, storage integration, and layout
     └── components/
         ├── TaskInput.jsx        add-task title input, priority select, button
