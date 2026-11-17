@@ -1,0 +1,7 @@
+{
+  "tasks": [
+    { "id": "t1", "title": "Practise fetch", "completed": false, "priority": "high" },
+    { "id": "t2", "title": "Check a failed save", "completed": true, "priority": "medium" },
+    { "id": "t3", "title": "Practise fetch", "completed": true, "priority": "low" }
+  ]
+}

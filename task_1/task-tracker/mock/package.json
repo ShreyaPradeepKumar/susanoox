@@ -1,0 +1,11 @@
+{
+  "name": "task-tracker-mock",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "api": "node -e \"const fs=require('node:fs'); if (!fs.existsSync('db.json')) fs.copyFileSync('db.seed.json','db.json')\" && json-server --watch db.json --port 3001 --host 127.0.0.1"
+  },
+  "dependencies": {
+    "json-server": "1.0.0-beta.15"
+  }
+}
