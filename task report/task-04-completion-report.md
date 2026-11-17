@@ -183,6 +183,26 @@ Browser script: `C:\Users\shrey\AppData\Local\Temp\opencode\pwcheck\check-b.cjs`
 - Imported tasks always use Medium priority because the API has no priority field; the user can edit them afterwards.
 - The deployed build was checked after the final implementation and documentation push.
 
+## Task 04 review correction (17 November 2026)
+
+### A1: preview status and keyboard focus
+
+- **Exact tested commit:** `cfad86ff027f0d5d072b152ee6ee9d604f02913c`
+- **Commit subject:** `fix Task 04 preview status and retry focus`
+- **Browser:** Google Chrome `157.0.8103.39`, headless, driven by `playwright-core`
+- **URL:** `http://127.0.0.1:5173/susanoox/`
+- **Controlled responses:** first `GET` returned HTTP 500; Retry then returned either two valid sample tasks or `[]`
+- **Keyboard path:** focus **Load sample tasks**, press Enter, press Tab to focus **Retry**, press Enter, then inspect `role="status"`, `document.activeElement`, and the next Tab stop.
+
+| Retry result | Focused before Retry | `role="status"` text after Retry | Active element after Retry | Next Tab stop |
+| --- | --- | --- | --- | --- |
+| Two sample tasks | Retry button | `2 sample tasks ready to preview.` | **Load sample tasks** button | First preview checkbox |
+| `[]` | Retry button | `No sample tasks available.` | **Load sample tasks** button | `BODY` |
+
+The status region stays mounted and now announces the finished state. Existing import count messages remain in the same `role="status"` region after the preview message, and request errors still use `role="alert"`. A Vitest/jsdom regression also confirms that focus is left alone when the user moves it to the task title field during a retry.
+
+### Learning and assistance
+
 - **Concept I can now demonstrate:** a polite live region only announces a meaningful change while it is mounted. Clearing the region when loading finishes does not announce the finished state, even though the visible page has changed.
 - **What I am still practising:** restoring focus when the focused control disappears, choosing a predictable destination, and checking the next Tab stop rather than only checking that the result appeared.
-- **How I checked suggestions:** I ran the keyboard path in Chrome against controlled HTTP 500 → 200 responses and inspected the live-region text, `document.activeElement`, and the next Tab stop. I did not accept an AI or documentation suggestion as correct until it matched that browser behaviour. I did not use a screen reader; this was a DOM and keyboard check, not a spoken-announcement check.
+- **How I checked suggestions:** I ran the keyboard path in Chrome against controlled HTTP 500 → 200 responses and inspected the live-region text, `document.activeElement`, and the next Tab stop. Both the populated and empty cases passed at the exact commit above. I did not accept an AI or documentation suggestion as correct until it matched that browser behaviour. I did not use a screen reader; this was a DOM and keyboard check, not a spoken-announcement check.
