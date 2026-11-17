@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import FilterButtons from './components/FilterButtons.jsx'
 import PriorityFilter from './components/PriorityFilter.jsx'
 import SearchInput from './components/SearchInput.jsx'
@@ -8,6 +8,7 @@ import TaskImport from './components/TaskImport.jsx'
 import TaskList from './components/TaskList.jsx'
 import TaskSummary from './components/TaskSummary.jsx'
 import { requestSampleTasks } from './taskApi.js'
+import * as taskCrudApi from './taskCrudApi.js'
 import { loadTasksFromBrowser, saveTasksToBrowser } from './storage.js'
 import {
   addTask,
@@ -43,10 +44,17 @@ function getInitialStorageState(loadStorage) {
 }
 
 function App({
+  dataMode = 'browser',
+  taskApi = taskCrudApi,
   loadStorage = loadTasksFromBrowser,
   saveStorage = saveTasksToBrowser,
 } = {}) {
-  const [initialStorage] = useState(() => getInitialStorageState(loadStorage))
+  const isApiMode = dataMode === 'api'
+  const [initialStorage] = useState(() =>
+    isApiMode
+      ? { status: 'loaded', tasks: [] }
+      : getInitialStorageState(loadStorage)
+  )
   const [tasks, setTasks] = useState(initialStorage.tasks)
   const [temporaryMode, setTemporaryMode] = useState(initialStorage.temporaryMode)
   const [saveError, setSaveError] = useState(null)
@@ -57,6 +65,11 @@ function App({
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState(null)
   const [importMessage, setImportMessage] = useState('')
+  const [apiStatus, setApiStatus] = useState(isApiMode ? 'loading' : 'ready')
+  const [apiError, setApiError] = useState(null)
+  const [writeError, setWriteError] = useState(null)
+  const [pendingWrite, setPendingWrite] = useState(false)
+  const [writeMessage, setWriteMessage] = useState('')
 
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('medium')
@@ -73,10 +86,18 @@ function App({
   const isFirstMount = useRef(true)
   const previewRequestInFlight = useRef(false)
   const importLock = useRef(false)
+  const apiLoadStarted = useRef(false)
+  const apiLoadSequence = useRef(0)
+  const writeInFlight = useRef(false)
+  const lastWrite = useRef(null)
+  const isMounted = useRef(true)
 
   const counts = getCounts(tasks)
   const isEditing = editingId !== null
   const anyTasks = tasks.length > 0
+  const isBusy =
+    isApiMode && (apiStatus !== 'ready' || pendingWrite || Boolean(writeError))
+  const controlsDisabled = isEditing || isBusy
   const previewStatusMessage = hasPreview
     ? previewTasks.length === 0
       ? 'No sample tasks available.'
@@ -112,6 +133,8 @@ function App({
   }, [editingId, visibleTasks])
 
   useEffect(() => {
+    if (isApiMode) return
+
     if (isFirstMount.current) {
       isFirstMount.current = false
       if (initialStorage.status === 'missing') {
@@ -131,13 +154,142 @@ function App({
     } else {
       queueMicrotask(() => setSaveError(null))
     }
-  }, [tasks, temporaryMode, initialStorage.status, saveStorage])
+  }, [tasks, temporaryMode, initialStorage.status, saveStorage, isApiMode])
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
+
+  const loadApiTasks = useCallback(async () => {
+    const requestId = ++apiLoadSequence.current
+    setApiStatus('loading')
+    setApiError(null)
+    setWriteError(null)
+    lastWrite.current = null
+
+    let result
+
+    try {
+      result = await taskApi.fetchTasks()
+    } catch {
+      result = {
+        ok: false,
+        kind: 'network',
+        message: 'Could not reach the local API. Check that JSON Server is running.',
+      }
+    }
+
+    if (!isMounted.current || requestId !== apiLoadSequence.current) {
+      return
+    }
+
+    if (result.ok) {
+      setTasks(result.tasks)
+      setApiStatus('ready')
+      return
+    }
+
+    setApiStatus('error')
+    setApiError(result.message || 'The local API could not be loaded. Try again.')
+  }, [taskApi])
+
+  useEffect(() => {
+    if (!isApiMode || apiLoadStarted.current) {
+      return
+    }
+
+    apiLoadStarted.current = true
+    loadApiTasks()
+  }, [isApiMode, loadApiTasks])
+
+  async function runWrite(label, operation, onSuccess, onFailure) {
+    if (writeInFlight.current) {
+      return
+    }
+
+    writeInFlight.current = true
+    lastWrite.current = { label, operation, onSuccess, onFailure }
+    setPendingWrite(true)
+    setWriteMessage(`Saving ${label}…`)
+    setWriteError(null)
+
+    let result
+
+    try {
+      result = await operation()
+    } catch {
+      result = {
+        ok: false,
+        kind: 'network',
+        message: 'Could not reach the local API. Check that JSON Server is running.',
+        uncertain: true,
+      }
+    }
+
+    writeInFlight.current = false
+
+    if (!isMounted.current) {
+      return
+    }
+
+    setPendingWrite(false)
+    setWriteMessage('')
+
+    if (result.ok) {
+      lastWrite.current = null
+      onSuccess(result)
+      return
+    }
+
+    setWriteError({
+      message: result.message || 'The local API could not save this change.',
+      uncertain: Boolean(result.uncertain || result.kind === 'network'),
+    })
+    onFailure?.(result)
+  }
+
+  function handleRetryWrite() {
+    const pending = lastWrite.current
+
+    if (!pending || writeInFlight.current) {
+      return
+    }
+
+    void runWrite(
+      pending.label,
+      pending.operation,
+      pending.onSuccess,
+      pending.onFailure
+    )
+  }
 
   function handleAdd(event) {
     event.preventDefault()
 
     if (title.trim() === '') {
       setError('Please enter a task title.')
+      return
+    }
+
+    if (isApiMode) {
+      void runWrite(
+        'new task',
+        () => taskApi.createTask(title, priority),
+        (result) => {
+          setTasks((current) => [...current, result.task])
+          setTitle('')
+          setPriority('medium')
+          setError('')
+        },
+        (result) => {
+          if (result.kind === 'validation') {
+            setError(result.message)
+          }
+        }
+      )
       return
     }
 
@@ -148,10 +300,40 @@ function App({
   }
 
   function handleToggle(id) {
+    if (isApiMode) {
+      const task = tasks.find((item) => item.id === id)
+
+      if (!task) {
+        return
+      }
+
+      void runWrite(
+        'completion change',
+        () => taskApi.patchTask(id, { completed: !task.completed }),
+        (result) => {
+          setTasks((current) =>
+            current.map((item) => (item.id === result.task.id ? result.task : item))
+          )
+        }
+      )
+      return
+    }
+
     setTasks(toggleTask(tasks, id))
   }
 
   function handleDelete(id) {
+    if (isApiMode) {
+      void runWrite(
+        'deletion',
+        () => taskApi.deleteTask(id),
+        () => {
+          setTasks((current) => current.filter((task) => task.id !== id))
+        }
+      )
+      return
+    }
+
     setTasks(deleteTask(tasks, id))
   }
 
@@ -208,6 +390,31 @@ function App({
 
     if (draftTitle.trim() === '') {
       setEditError('Please enter a task title.')
+      return
+    }
+
+    if (isApiMode) {
+      const id = editingId
+      const nextTitle = draftTitle
+      const nextPriority = draftPriority
+
+      void runWrite(
+        'edit',
+        () => taskApi.patchTask(id, { title: nextTitle, priority: nextPriority }),
+        (result) => {
+          closedEditId.current = id
+          setTasks((current) =>
+            current.map((task) => (task.id === result.task.id ? result.task : task))
+          )
+          setEditingId(null)
+          setDraftTitle('')
+          setDraftPriority('medium')
+          setEditError('')
+        },
+        (result) => {
+          setEditError(result.message)
+        }
+      )
       return
     }
 
@@ -302,6 +509,72 @@ function App({
   return (
     <div className="min-h-screen bg-slate-100 p-4">
       <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-5">
+        {isApiMode && (
+          <p className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
+            Local API mode
+          </p>
+        )}
+
+        {isApiMode && (apiStatus === 'loading' || pendingWrite) && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-4 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+          >
+            {apiStatus === 'loading' ? 'Loading tasks…' : writeMessage}
+          </div>
+        )}
+
+        {isApiMode && apiStatus === 'error' && (
+          <div
+            role="alert"
+            className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            <p className="mb-2">
+              {apiError} Tasks cannot be changed until the list loads.
+            </p>
+            <button
+              type="button"
+              onClick={loadApiTasks}
+              className="rounded border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+            >
+              Retry loading
+            </button>
+          </div>
+        )}
+
+        {isApiMode && writeError && (
+          <div
+            role="alert"
+            className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            <p className="mb-2">{writeError.message}</p>
+            <p className="mb-2">
+              {writeError.uncertain
+                ? 'The result is uncertain. Reload tasks from the API before trying again.'
+                : 'Your list and drafts are unchanged. You can retry this change or reload tasks.'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {!writeError.uncertain && (
+                <button
+                  type="button"
+                  onClick={handleRetryWrite}
+                  className="rounded border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+                >
+                  Retry this change
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={loadApiTasks}
+                className="rounded border border-red-300 bg-white px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
+              >
+                Reload tasks
+              </button>
+            </div>
+          </div>
+        )}
+
         {temporaryMode && (
           <div
             role="alert"
@@ -348,14 +621,16 @@ function App({
           <SearchInput
             search={search}
             onSearchChange={setSearch}
-            disabled={isEditing}
+            disabled={controlsDisabled}
           />
         </div>
+
 
         <TaskInput
           title={title}
           error={error}
           priority={priority}
+          disabled={isBusy}
           onTitleChange={setTitle}
           onPriorityChange={setPriority}
           onSubmit={handleAdd}
@@ -363,23 +638,23 @@ function App({
         <FilterButtons
           filter={filter}
           onFilterChange={setFilter}
-          disabled={isEditing}
+          disabled={controlsDisabled}
         />
         <PriorityFilter
           priority={priorityFilter}
           onPriorityChange={setPriorityFilter}
-          disabled={isEditing}
+          disabled={controlsDisabled}
         />
         <SortSelect
           sort={sort}
           onSortChange={setSort}
-          disabled={isEditing}
+          disabled={controlsDisabled}
         />
         {isFiltered && (
           <button
             type="button"
             onClick={handleClearFilters}
-            disabled={isEditing}
+            disabled={controlsDisabled}
             className="mb-4 rounded border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Clear search and filters
@@ -394,7 +669,8 @@ function App({
           tasks={visibleTasks}
           anyTasks={anyTasks}
           editingId={editingId}
-          disabled={isEditing}
+          disabled={controlsDisabled}
+          editorDisabled={isApiMode && pendingWrite}
           onToggle={handleToggle}
           onDelete={handleDelete}
           onEdit={handleEdit}
@@ -412,24 +688,28 @@ function App({
           completed={counts.completed}
           showing={visibleTasks.length}
         />
-        <TaskImport
-          previewTasks={previewTasks}
-          hasPreview={hasPreview}
-          selectedIds={selectedPreviewIds}
-          existingIds={existingTaskIds}
-          isLoading={isPreviewLoading}
-          error={previewError}
-          statusMessage={previewStatusMessage}
-          resultMessage={importMessage}
-          isEditing={isEditing}
-          selectedEligibleCount={selectedEligibleCount}
-          canImport={canImport}
-          onLoad={handleLoadSampleTasks}
-          onToggleSelect={handleTogglePreview}
-          onImport={handleImportSelected}
-        />
+        {!isApiMode && (
+          <TaskImport
+            previewTasks={previewTasks}
+            hasPreview={hasPreview}
+            selectedIds={selectedPreviewIds}
+            existingIds={existingTaskIds}
+            isLoading={isPreviewLoading}
+            error={previewError}
+            statusMessage={previewStatusMessage}
+            resultMessage={importMessage}
+            isEditing={isEditing}
+            selectedEligibleCount={selectedEligibleCount}
+            canImport={canImport}
+            onLoad={handleLoadSampleTasks}
+            onToggleSelect={handleTogglePreview}
+            onImport={handleImportSelected}
+          />
+        )}
         <p className="mt-4 text-center text-xs text-slate-500">
-          Tasks are saved in this browser, not to an account or cloud service.
+          {isApiMode
+            ? 'Tasks are stored by the local JSON Server API.'
+            : 'Tasks are saved in this browser, not to an account or cloud service.'}
         </p>
       </div>
     </div>

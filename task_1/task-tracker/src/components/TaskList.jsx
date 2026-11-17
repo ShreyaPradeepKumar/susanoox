@@ -5,6 +5,7 @@ function TaskList({
   anyTasks,
   editingId,
   disabled,
+  editorDisabled,
   onToggle,
   onDelete,
   onEdit,
@@ -36,6 +37,7 @@ function TaskList({
           task={task}
           editing={editingId === task.id}
           disabled={disabled}
+          editorDisabled={editorDisabled}
           onToggle={onToggle}
           onDelete={onDelete}
           onEdit={onEdit}

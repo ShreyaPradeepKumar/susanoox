@@ -17,6 +17,7 @@ function TaskItem({
   task,
   editing,
   disabled,
+  editorDisabled,
   onToggle,
   onDelete,
   onEdit,
@@ -46,6 +47,7 @@ function TaskItem({
           draftTitle={draftTitle}
           draftPriority={draftPriority}
           editError={editError}
+          disabled={editorDisabled}
           onDraftTitleChange={onDraftTitleChange}
           onDraftPriorityChange={onDraftPriorityChange}
           onSave={onSave}

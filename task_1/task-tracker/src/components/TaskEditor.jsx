@@ -2,6 +2,7 @@ function TaskEditor({
   draftTitle,
   draftPriority,
   editError,
+  disabled,
   onDraftTitleChange,
   onDraftPriorityChange,
   onSave,
@@ -24,6 +25,7 @@ function TaskEditor({
         type="text"
         value={draftTitle}
         onChange={(event) => onDraftTitleChange(event.target.value)}
+        disabled={disabled}
         autoFocus
         aria-invalid={editError ? 'true' : undefined}
         aria-describedby={editError ? 'task-edit-error' : undefined}
@@ -42,7 +44,8 @@ function TaskEditor({
           id="task-edit-priority"
           value={draftPriority}
           onChange={(event) => onDraftPriorityChange(event.target.value)}
-          className="flex-1 rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-700"
+          disabled={disabled}
+          className="flex-1 rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="low">Low</option>
           <option value="medium">Medium</option>
@@ -52,14 +55,16 @@ function TaskEditor({
       <div className="flex gap-2">
         <button
           type="submit"
-          className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          disabled={disabled}
+          className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Save
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-100"
+          disabled={disabled}
+          className="rounded border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
         </button>
