@@ -113,6 +113,7 @@ No automatic retries or polling were added.
 | Stale GET safety | Done | Chrome check with two held GETs; newer title persisted |
 | Accessibility cues | Done | `role="status"` pending messages, `role="alert"` errors, labelled controls |
 | No extra backend/state library | Done | Only pinned local mock server; no production backend |
+| Deployed smoke after final push | Done | Actions run `44114152577` succeeded; deployed Chrome check passed with no app defects |
 
 ### Automated checks
 
@@ -205,6 +206,19 @@ Stale GET check: two loads were held; the newer response was fulfilled with `FRE
 Default browser mode with JSON Server stopped showed `Task Tracker`, four initial rows, `Total: 4`, `Import sample tasks`, **Load sample tasks**, and `Tasks are saved in this browser, not to an account or cloud service.` No `Local API mode` text appeared and requests to port 3001 were empty.
 
 No application defects were found. Two harness caveats: CDP-fulfilled 500 responses needed `Access-Control-Allow-Origin: *` to avoid being converted into CORS network errors, and `--watch` did not see an external `Copy-Item` overwrite, so JSON Server was restarted after seed resets.
+
+### Deployed smoke check
+
+GitHub Actions run `44114152577` for commit `240a0b570b0c8db8f33ec369e09234a59fcc10bf` completed with `conclusion: success`. The deployed app at https://ShreyaPradeepKumar.github.io/susanoox/ was then checked in Chrome `157.0.8103.39`:
+
+- Title and heading: `Task Tracker`; footer: `Tasks are saved in this browser, not to an account or cloud service.`
+- `Local API mode` was absent; requests to port 3001 were empty.
+- Bundles: `assets/index-CRm7aW1D.js` and `assets/index-BzHoi5tx.css`, both HTTP 200.
+- Sample import region was present with **Load sample tasks**. JSONPlaceholder requests were `0` before click and `1` after, and the preview status was `5 sample tasks ready to preview.`
+- Deployed UI add/toggle/edit/delete worked: `Deployed smoke task | High | Edit | Delete` → checked → `Deployed smoke task - edited | Low | Edit | Delete`; the edited row persisted after refresh, then delete persisted after a second refresh.
+- Console/page errors, page exceptions, dialogs, and loading failures were all empty.
+- Overflow checks: 320px `305/305`, 375px `360/360`, 1280px `1265/1265`; no horizontal overflow.
+- Minor environment-only log entry: the browser requested `/favicon.ico`, which returned 404. This is not an application defect and was not changed for Task 05.
 
 ### Known limitations and untested items
 
